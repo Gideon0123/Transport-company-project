@@ -24,7 +24,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 import java.util.Objects;
 
 @Service
@@ -40,8 +39,6 @@ public class UserServiceImpl implements UserService{
     @Override
     @Cacheable(value = CacheKeys.USER, key = "#page + '-' + #size + '-' + #sortBy")
     public PagedResponse<UserSummaryDTO> getPagedUsers(int page, int size, String sortBy) {
-
-        System.out.println("DB HIT: Fetching users from database...");
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy));
         Page<UserSummaryDTO> userPage = userRepository.findAllUsersOptimized(pageable);
@@ -114,10 +111,21 @@ public class UserServiceImpl implements UserService{
     }
 
     @Override
-    public List<UserResponseDTO> searchUser(String firstName, String lastName, String email, String phoneNo) {
+    public Page<UserResponseDTO> searchUser(
+            String keyword,
+            String firstName,
+            String lastName,
+            String email,
+            String phoneNo,
+            String userType ,
+            String userStatus,
+            Pageable pageable) {
 
-        Specification<User> spec = Specification.where((Specification<User>) null);
+        Specification<User> spec = Specification.allOf();
 
+        if (keyword != null && keyword.length() >= 3) {
+            spec = spec.and(UserSearchSpecs.keywordSearch(keyword));
+        }
         if (firstName != null && !firstName.isEmpty()) {
             spec = spec.and(UserSearchSpecs.hasFirstName(firstName));
         }
@@ -131,10 +139,18 @@ public class UserServiceImpl implements UserService{
             spec = spec.and(UserSearchSpecs.hasPhoneNo(phoneNo));
         }
 
-        List<User> users = userRepository.findAll(spec, Sort.by("firstName"));
-        return users.stream()
-                .map(UserMapper::toDTO)
-                .toList();
+        if (userType != null && !userType.isEmpty()) {
+            spec = spec.and(UserSearchSpecs.hasUserType(userType));
+        }
+
+        if (userStatus != null && !userStatus.isEmpty()) {
+            spec = spec.and(UserSearchSpecs.hasUserStatus(userStatus));
+        }
+
+        System.out.println("UserType is = " + userType);
+
+        Page<User> users = userRepository.findAll(spec, pageable);
+        return users.map(UserMapper::toDTO);
 
     }
 

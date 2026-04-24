@@ -20,39 +20,22 @@ public class CacheConfig {
     @Bean
     public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
 
-        RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
-                .entryTtl(Duration.ofMinutes(10))
-                .disableCachingNullValues()
-                .serializeValuesWith(
-                        RedisSerializationContext.SerializationPair.fromSerializer(
-                                new GenericJackson2JsonRedisSerializer()
-                        )
-                );
+        try {
+            RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
+                    .entryTtl(Duration.ofMinutes(10))
+                    .disableCachingNullValues()
+                    .serializeValuesWith(
+                            RedisSerializationContext.SerializationPair.fromSerializer(
+                                    new GenericJackson2JsonRedisSerializer()
+                            )
+                    );
 
-        return RedisCacheManager.builder(connectionFactory)
-                .cacheDefaults(config)
-                .build();
+            return RedisCacheManager.builder(connectionFactory)
+                    .cacheDefaults(config)
+                    .build();
+        } catch (Exception e) {
+//            throw new RuntimeException(e);
+            return new ConcurrentMapCacheManager();
+        }
     }
 }
-
-//@Configuration
-//@EnableCaching
-//public class CacheConfig {
-//
-//    @Bean
-//    public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
-//
-//        try {
-//            RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
-//                    .entryTtl(Duration.ofMinutes(10))
-//                    .disableCachingNullValues();
-//
-//            return RedisCacheManager.builder(connectionFactory)
-//                    .cacheDefaults(config)
-//                    .build();
-//        } catch (Exception e) {
-//            return new ConcurrentMapCacheManager();
-//        }
-//    }
-//
-//}

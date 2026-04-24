@@ -160,7 +160,7 @@ public class BookingController {
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "5") int size,
-            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "bookingId") String sortBy,
             HttpServletRequest request
     ) {
 

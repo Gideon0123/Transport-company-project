@@ -1,6 +1,5 @@
 package com.example.transport.config;
 
-import com.example.transport.repository.UserRepository;
 import com.example.transport.service.CustomUserDetailsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -14,8 +13,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @Configuration
 @RequiredArgsConstructor
 public class AppConfig {
-
-    private final UserRepository userRepository;
 
     @Bean
     public UserDetailsService userDetailsService(CustomUserDetailsService service) {

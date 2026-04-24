@@ -26,6 +26,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Service
@@ -175,12 +176,19 @@ public class StaffServiceImpl implements StaffService{
     }
 
     @Override
-    public List<StaffResponseDTO> searchStaff(String userType, String roleType, String nin, String bankAccountNo) {
+    public Page<StaffResponseDTO> searchStaff(
+            String keyword,
+            String roleType,
+            String nin,
+            String bankName,
+            String bankAccountNo,
+            BigDecimal salary,
+            Pageable pageable) {
 
-        Specification<Staff> spec = Specification.where((Specification<Staff>) null);
+        Specification<Staff> spec = Specification.allOf();
 
-        if (userType != null && !userType.isEmpty()) {
-            spec = spec.and(StaffSearchSpecs.hasUserType(userType));
+        if (keyword != null && keyword.length() >= 3) {
+            spec = spec.and(StaffSearchSpecs.keywordSearch(keyword));
         }
 
         if (roleType != null && !roleType.isEmpty()) {
@@ -191,14 +199,20 @@ public class StaffServiceImpl implements StaffService{
             spec = spec.and(StaffSearchSpecs.hasNin(nin));
         }
 
+        if (bankName != null && !bankName.isEmpty()) {
+            spec = spec.and(StaffSearchSpecs.hasBankName(bankName));
+        }
+
         if (bankAccountNo != null && !bankAccountNo.isEmpty()) {
             spec = spec.and(StaffSearchSpecs.hasBankAccountNo(bankAccountNo));
         }
 
-        List<Staff> staffs = staffRepository.findAll(spec);
-        return staffs.stream()
-                .map(StaffMapper::toDTO)
-                .toList();
+        if (salary != null) {
+            spec = spec.and((StaffSearchSpecs.hasSalary(salary)));
+        }
+
+        Page<Staff> staffs = staffRepository.findAll(spec, pageable);
+        return staffs.map(StaffMapper::toDTO);
     }
 
     @Override

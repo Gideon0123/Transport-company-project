@@ -23,8 +23,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -35,7 +35,6 @@ public class TripServiceImpl implements TripService{
     private final VehicleRepository vehicleRepository;
 
     @Override
-//    @CachePut(value = "trips", key = "#result.id")
     @CacheEvict(value = CacheKeys.TRIP, allEntries = true)
     public TripResponseDTO createTrip(CreateTripRequestDTO dto) {
 
@@ -171,14 +170,23 @@ public class TripServiceImpl implements TripService{
     }
 
     @Override
-    public List<TripResponseDTO> searchTrips(String vehicleType,
-                                             String departureLocation,
-                                             String destinationLocation,
-                                             LocalDate bookingDate,
-                                             LocalDate departureDateTime) {
+    public Page<TripResponseDTO> searchTrips(
+            String keyword,
+            String vehicleType,
+            String departureLocation,
+            String destinationLocation,
+            LocalDate bookingDate,
+            LocalDate departureDateTime,
+            BigDecimal price,
+            String tripStatus,
+            String vehiclePlate,
+            Pageable pageable) {
 
-        Specification<Trip> spec = Specification.where((Specification<Trip>) null);
+        Specification<Trip> spec = Specification.allOf();
 
+        if (keyword != null && keyword.length() >= 3) {
+            spec = spec.and(TripSearchSpecs.keywordSearch(keyword));
+        }
         if (vehicleType != null && !vehicleType.isEmpty()) {
             spec = spec.and(TripSearchSpecs.hasVehicleType(vehicleType));
         }
@@ -192,14 +200,21 @@ public class TripServiceImpl implements TripService{
             spec = spec.and(TripSearchSpecs.bookedOn(bookingDate));
         }
         if (departureDateTime != null) {
-            spec = spec.and(TripSearchSpecs.hasDepartureDateTime(departureDateTime));
+            spec = spec.and(TripSearchSpecs.hasDepartureDate(departureDateTime));
+        }
+        if (price != null) {
+            spec = spec.and(TripSearchSpecs.hasPrice(price));
+        }
+        if (tripStatus != null && !tripStatus.isEmpty()) {
+            spec = spec.and(TripSearchSpecs.hasTripStatus(tripStatus));
+        }
+        if (vehiclePlate != null && !vehiclePlate.isEmpty()) {
+            spec = spec.and(TripSearchSpecs.hasVehiclePlate(vehiclePlate));
         }
 
-        List<Trip> trips = tripRepository.findAll(spec);
+        Page<Trip> tripPage = tripRepository.findAll(spec, pageable);
 
-        return trips.stream()
-                .map(TripMapper::toDTO)
-                .toList();
+        return tripPage.map(TripMapper::toDTO);
     }
 
     @CacheEvict(value = CacheKeys.TRIP, key = CacheKeys.TRIP_ALL)

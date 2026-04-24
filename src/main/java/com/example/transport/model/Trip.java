@@ -11,13 +11,6 @@ import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
 @Entity
-//@Table(
-//        name = "trip",
-//        indexes = {
-//                @Index(name = "idx_trip_departure", columnList = "departure_location"),
-//                @Index(name = "idx_trip_destination", columnList = "destination_location")
-//        }
-//)
 @Data
 @Builder
 @NoArgsConstructor

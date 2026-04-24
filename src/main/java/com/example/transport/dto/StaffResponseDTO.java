@@ -1,7 +1,6 @@
 package com.example.transport.dto;
 
 import com.example.transport.enums.RoleType;
-import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

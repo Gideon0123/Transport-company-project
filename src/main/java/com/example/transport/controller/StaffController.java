@@ -8,13 +8,15 @@ import com.example.transport.util.TraceIdUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/staffs")
@@ -141,22 +143,30 @@ public class StaffController {
     //SEARCH
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
     @GetMapping("/search")
-    public ResponseEntity<ApiResponse<List<StaffResponseDTO>>> searchStaff(
-            @RequestParam(required = false) String userType,
+    public ResponseEntity<ApiResponse<Page<StaffResponseDTO>>> searchStaff(
+            @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String roleType,
             @RequestParam(required = false) String nin,
+            @RequestParam(required = false) String bankName,
             @RequestParam(required = false) String bankAccountNo,
+            @RequestParam(required = false) BigDecimal salary,
+
+            @PageableDefault(size = 5, sort = "staffId")
+            Pageable pageable,
             HttpServletRequest request
     ) {
-        List<StaffResponseDTO> staffs = staffService.searchStaff(
-                userType,
+        Page<StaffResponseDTO> staffs = staffService.searchStaff(
+                keyword,
                 roleType,
                 nin,
-                bankAccountNo
+                bankName,
+                bankAccountNo,
+                salary,
+                pageable
         );
 
         return ResponseEntity.ok(
-                ApiResponse.<List<StaffResponseDTO>>builder()
+                ApiResponse.<Page<StaffResponseDTO>>builder()
                         .success(true)
                         .message("Trips fetched successfully")
                         .statusCode(200)

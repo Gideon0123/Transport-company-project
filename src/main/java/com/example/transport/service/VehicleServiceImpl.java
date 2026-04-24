@@ -26,7 +26,6 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Service
 @AllArgsConstructor
@@ -137,7 +136,6 @@ public class VehicleServiceImpl implements VehicleService{
     }
 
     @Override
-//    @CacheEvict(value = "vehicles", key = "#id")
     @CacheEvict(value = CacheKeys.VEHICLE, allEntries = true)
     public void deleteVehicle(Long id) {
 
@@ -160,14 +158,20 @@ public class VehicleServiceImpl implements VehicleService{
     }
 
     @Override
-    public List<VehicleResponseDTO> searchVehicles(String driver,
+    public Page<VehicleResponseDTO> searchVehicles(String keyword,
+                                                   Long driverId,
                                                    String vehiclePlate,
-                                                   String vehicleType) {
+                                                   String vehicleType,
+                                                   String vehicleStatus,
+                                                   Pageable pageable) {
 
-        Specification<Vehicle> spec = Specification.where((Specification<Vehicle>) null);
+        Specification<Vehicle> spec = Specification.allOf();
 
-        if (driver != null && !driver.isEmpty()) {
-            spec = spec.and(VehicleSearchSpecs.hasDriver(driver));
+        if (keyword != null && keyword.length() >= 3) {
+            spec = spec.and(VehicleSearchSpecs.keywordSearch(keyword));
+        }
+        if (driverId != null) {
+            spec = spec.and(VehicleSearchSpecs.hasDriverId(driverId));
         }
 
         if (vehiclePlate != null && !vehiclePlate.isEmpty()) {
@@ -178,11 +182,13 @@ public class VehicleServiceImpl implements VehicleService{
             spec = spec.and(VehicleSearchSpecs.hasVehicleType(vehicleType));
         }
 
-        List<Vehicle> vehicles = vehicleRepository.findAll(spec);
+        if (vehicleStatus != null && !vehicleStatus.isEmpty()) {
+            spec = spec.and(VehicleSearchSpecs.hasVehicleStatus(vehicleStatus));
+        }
 
-        return vehicles.stream()
-                .map(VehicleMapper::toDTO)
-                .toList();
+        Page<Vehicle> vehicles = vehicleRepository.findAll(spec, pageable);
+
+        return vehicles.map(VehicleMapper::toDTO);
     }
 
     @CacheEvict(value = CacheKeys.VEHICLE, key = CacheKeys.VEHICLE_ALL)

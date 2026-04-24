@@ -8,15 +8,18 @@ import com.example.transport.service.TripService;
 import com.example.transport.util.TraceIdUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/trips")
@@ -142,7 +145,8 @@ public class TripController {
 
     //SEARCH TRIP
     @GetMapping("/search")
-    public ResponseEntity<ApiResponse<List<TripResponseDTO>>> searchTrips(
+    public ResponseEntity<ApiResponse<Page<TripResponseDTO>>> searchTrips(
+            @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String vehicleType,
             @RequestParam(required = false) String departureLocation,
             @RequestParam(required = false) String destinationLocation,
@@ -152,19 +156,30 @@ public class TripController {
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
             LocalDate departureDateTime,
+            @RequestParam(required = false) BigDecimal price,
+            @RequestParam(required = false) String tripStatus,
+            @RequestParam(required = false) String vehiclePlate,
+
+            @PageableDefault(size = 5, sort = "price")
+            Pageable pageable,
             HttpServletRequest request
     ) {
 
-        List<TripResponseDTO> trips = tripService.searchTrips(
+        Page<TripResponseDTO> trips = tripService.searchTrips(
+                keyword,
                 vehicleType,
                 departureLocation,
                 destinationLocation,
                 bookingDate,
-                departureDateTime
+                departureDateTime,
+                price,
+                tripStatus,
+                vehiclePlate,
+                pageable
         );
 
         return ResponseEntity.ok(
-                ApiResponse.<List<TripResponseDTO>>builder()
+                ApiResponse.<Page<TripResponseDTO>>builder()
                         .success(true)
                         .message("Trips fetched successfully")
                         .statusCode(200)

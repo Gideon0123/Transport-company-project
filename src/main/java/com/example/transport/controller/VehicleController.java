@@ -7,13 +7,15 @@ import com.example.transport.service.VehicleService;
 import com.example.transport.util.TraceIdUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @RestController
 @CrossOrigin
@@ -147,16 +149,27 @@ public class VehicleController {
     //SEARCH
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
     @GetMapping("/search")
-    public ResponseEntity<ApiResponse<List<VehicleResponseDTO>>> searchVehicles(
-            @RequestParam(required = false) String driver,
+    public ResponseEntity<ApiResponse<Page<VehicleResponseDTO>>> searchVehicles(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long driverId,
             @RequestParam(required = false) String vehiclePlate,
             @RequestParam(required = false) String vehicleType,
+            @RequestParam(required = false) String vehicleStatus,
+
+            @PageableDefault(size = 5, sort = "vehiclePlate")
+            Pageable pageable,
             HttpServletRequest request
     ) {
-        List<VehicleResponseDTO> vehicles = vehicleService.searchVehicles(driver, vehiclePlate, vehicleType);
+        Page<VehicleResponseDTO> vehicles = vehicleService.searchVehicles(
+                keyword,
+                driverId,
+                vehiclePlate,
+                vehicleType,
+                vehicleStatus,
+                pageable);
 
         return ResponseEntity.ok(
-                ApiResponse.<List<VehicleResponseDTO>>builder()
+                ApiResponse.<Page<VehicleResponseDTO>>builder()
                         .success(true)
                         .message("Vehicles fetched successfully")
                         .statusCode(200)

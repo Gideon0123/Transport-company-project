@@ -2,8 +2,8 @@ package com.example.transport.service;
 
 import com.example.transport.dto.*;
 import com.example.transport.payload.PagedResponse;
-
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface UserService {
 
@@ -12,7 +12,14 @@ public interface UserService {
     UserResponseDTO getUser(Long id);
     UserResponseDTO updateUser(Long id, UpdateUserRequestDTO dto);
     void deleteUser(Long id);
-    List<UserResponseDTO> searchUser(String firstName, String lastName, String email, String phoneNo);
+    Page<UserResponseDTO> searchUser(String keyword,
+                                     String firstName,
+                                     String lastName,
+                                     String email,
+                                     String phoneNo,
+                                     String userType,
+                                     String userStatus,
+                                     Pageable pageable);
     UserResponseDTO getCurrentUser(String email);
     void changePassword(ChangePasswordRequestDTO request);
 }
