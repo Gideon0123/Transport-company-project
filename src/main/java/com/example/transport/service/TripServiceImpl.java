@@ -158,7 +158,6 @@ public class TripServiceImpl implements TripService{
     }
 
     @Override
-//    @CacheEvict(value = "trips", key = "#id")
     @CacheEvict(value = CacheKeys.TRIP, allEntries = true)
     public void deleteTrip(Long id) {
         Trip trip = tripRepository.findById(id)

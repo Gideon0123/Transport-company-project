@@ -17,7 +17,7 @@ public class TripSearchSpecs {
                 VehicleType type = VehicleType.valueOf(vehicleType.toUpperCase());
                 return criteriaBuilder.equal(root.get("vehicle").get("vehicleType"), type);
             } catch (IllegalArgumentException e) {
-                return null; // invalid enum → ignore filter
+                return null;
             }
         };
     }
@@ -34,6 +34,7 @@ public class TripSearchSpecs {
             );
         };
     }
+
     public static Specification<Trip> hasDepartureLocation(String departureLocation) {
         return (root, query, criteriaBuilder) -> criteriaBuilder.equal(root.get("departureLocation"), departureLocation);
     }

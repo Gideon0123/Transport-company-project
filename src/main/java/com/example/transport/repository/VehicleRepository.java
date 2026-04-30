@@ -1,7 +1,6 @@
 package com.example.transport.repository;
 
 import com.example.transport.dto.VehicleSummaryDTO;
-import com.example.transport.enums.VehicleStatus;
 import com.example.transport.model.Staff;
 import com.example.transport.model.Vehicle;
 import org.springframework.data.domain.Page;

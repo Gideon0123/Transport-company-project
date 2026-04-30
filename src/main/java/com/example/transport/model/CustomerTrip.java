@@ -8,13 +8,6 @@ import java.math.BigDecimal;
 
 @EqualsAndHashCode(callSuper = true)
 @Entity
-//@Table(
-//        name = "customer_trip",
-//        indexes = {
-//                @Index(name = "idx_customer_trip_customer", columnList = "customer_id"),
-//                @Index(name = "idx_customer_trip_trip", columnList = "trip_id")
-//        }
-//)
 @Data
 @Builder
 @NoArgsConstructor

@@ -10,12 +10,15 @@ import com.example.transport.util.TraceIdUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -156,32 +159,31 @@ public class BookingController {
     }
 
     @GetMapping("/search")
-    public ResponseEntity<ApiResponse<PagedResponse<BookingResponseDTO>>> searchBookings(
+    public ResponseEntity<ApiResponse<Page<BookingResponseDTO>>> searchBookings(
             @RequestParam(required = false) String keyword,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "5") int size,
-            @RequestParam(defaultValue = "bookingId") String sortBy,
+            @RequestParam(required = false) BigDecimal totalPrice,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Long tripId,
+
+            @PageableDefault(size = 5, sort = "totalPrice")
+            Pageable pageable,
             HttpServletRequest request
     ) {
 
         Page<BookingResponseDTO> bookingsPage =
-                bookingService.searchBookings(keyword, page, size, sortBy);
-
-        PagedResponse<BookingResponseDTO> response =
-                PagedResponse.<BookingResponseDTO>builder()
-                        .content(bookingsPage.getContent())
-                        .page(bookingsPage.getNumber())
-                        .size(bookingsPage.getSize())
-                        .totalElements(bookingsPage.getTotalElements())
-                        .totalPages(bookingsPage.getTotalPages())
-                        .build();
+                bookingService.searchBookings(
+                        keyword,
+                        totalPrice,
+                        status,
+                        tripId,
+                        pageable);
 
         return ResponseEntity.ok(
-                ApiResponse.<PagedResponse<BookingResponseDTO>>builder()
+                ApiResponse.<Page<BookingResponseDTO>>builder()
                         .success(true)
                         .message("Bookings fetched successfully")
                         .statusCode(200)
-                        .data(response)
+                        .data(bookingsPage)
                         .errors(null)
                         .path(request.getRequestURI())
                         .traceId(TraceIdUtil.generate())

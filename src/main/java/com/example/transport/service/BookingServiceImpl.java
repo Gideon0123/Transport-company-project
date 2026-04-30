@@ -12,6 +12,7 @@ import com.example.transport.model.User;
 import com.example.transport.repository.CustomerTripRepository;
 import com.example.transport.repository.TripRepository;
 import com.example.transport.repository.UserRepository;
+import com.example.transport.repository.specification.BookingSearchSpecs;
 import com.example.transport.util.CacheKeys;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -115,8 +117,6 @@ public class BookingServiceImpl implements BookingService {
 
         booking.setStatus(BookingStatus.CANCELLED);
         bookingRepository.save(booking);
-
-//        return "Booking cancelled successfully";
     }
 
     @Override
@@ -150,10 +150,8 @@ public class BookingServiceImpl implements BookingService {
             throw new RuntimeException("Cannot update cancelled booking");
         }
 
-        // Update seats
         booking.setNumberOfSeats(request.getNumberOfSeats());
 
-        // Recalculate price
         BigDecimal totalPrice = booking.getTrip().getPrice()
                 .multiply(BigDecimal.valueOf(request.getNumberOfSeats()));
 
@@ -176,12 +174,30 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    public Page<BookingResponseDTO> searchBookings(String keyword, int page, int size, String sortBy) {
+    public Page<BookingResponseDTO> searchBookings(
+            String keyword,
+            BigDecimal totalPrice,
+            String status,
+            Long tripId,
+            Pageable pageable) {
 
-        Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy));
-        Page<CustomerTrip> bookings = bookingRepository.searchBookings(keyword, pageable);
+        Specification<CustomerTrip> spec = Specification.allOf();
 
-        return bookings.map(this::mapToResponse);
+        if (keyword != null && keyword.length() >= 3) {
+            spec = spec.and(BookingSearchSpecs.keywordSearch(keyword));
+        }
+        if (totalPrice != null) {
+            spec = spec.and(BookingSearchSpecs.hasTotalPrice(totalPrice));
+        }
+        if (status != null && !status.isEmpty()) {
+            spec = spec.and(BookingSearchSpecs.hasStatus(status));
+        }
+        if (tripId != null) {
+            spec = spec.and(BookingSearchSpecs.hasTripId(tripId));
+        }
+
+        Page<CustomerTrip> bookingPage = bookingRepository.findAll(spec, pageable);
+        return bookingPage.map(this::mapToResponse);
     }
 }
 

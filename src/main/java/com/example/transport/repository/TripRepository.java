@@ -18,7 +18,6 @@ public interface TripRepository extends JpaRepository<Trip, Long>, JpaSpecificat
     @EntityGraph(attributePaths = {"vehicle", "vehicle.driver"})
     Page<Trip> findAllByDeletedFalse(Pageable pageable);
 
-    // Optimized (DTO projection)
     @Query("""
     SELECT new com.example.transport.dto.TripSummaryDTO(
         t.tripId,

@@ -31,7 +31,6 @@ public class StaffSearchSpecs {
             } catch (IllegalArgumentException ignored) {}
 
             return cb.or(predicates.toArray(new Predicate[0]));
-
         };
     }
 

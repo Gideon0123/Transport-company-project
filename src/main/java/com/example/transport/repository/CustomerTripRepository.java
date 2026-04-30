@@ -5,11 +5,12 @@ import com.example.transport.model.CustomerTrip;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
 
-public interface CustomerTripRepository extends JpaRepository<CustomerTrip, Long> {
+public interface CustomerTripRepository extends JpaRepository<CustomerTrip, Long>, JpaSpecificationExecutor<CustomerTrip> {
 
     @Query("SELECT COALESCE(SUM(ct.numberOfSeats), 0) FROM CustomerTrip ct WHERE ct.trip.id = :tripId")
     int sumSeatsByTrip(Long tripId);

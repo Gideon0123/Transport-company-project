@@ -20,10 +20,8 @@ public class VehicleSearchSpecs {
 
             List<Predicate> predicates = new ArrayList<>();
 
-            // String fields → use LIKE
             predicates.add(cb.like(cb.lower(root.get("vehiclePlate")), pattern));
 
-            // ENUM fields → use EQUAL
             try {
                 VehicleType vehicleType = VehicleType.valueOf(keyword.toUpperCase());
                 predicates.add(cb.equal(root.get("vehicleType"), vehicleType));
