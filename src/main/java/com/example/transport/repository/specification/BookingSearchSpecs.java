@@ -33,8 +33,7 @@ public class BookingSearchSpecs {
             try {
                 BookingStatus status = BookingStatus.valueOf(keyword.toUpperCase());
                 predicates.add(cb.equal(root.get("status"), status));
-            } catch (IllegalArgumentException ignored) {
-            }
+            } catch (IllegalArgumentException ignored) {}
 
             predicates.add(cb.like(cb.lower(user.get("email")), pattern));
             predicates.add(cb.like(cb.lower(trip.get("departureLocation")), pattern));
@@ -75,27 +74,4 @@ public class BookingSearchSpecs {
         };
     }
 
-    public static Specification<CustomerTrip> hasTotalPrice(BigDecimal totalPrice) {
-        return (root, query, cb) ->
-                cb.equal(root.get("totalPrice"), totalPrice);
-    }
-
-    public static Specification<CustomerTrip> hasStatus(String status) {
-
-        return (root, query, cb) -> {
-
-            if (status == null || status.isBlank()) return null;
-            try {
-                BookingStatus bookingStatus = BookingStatus.valueOf(status.trim().toUpperCase());
-                return cb.equal(root.get("status"), bookingStatus);
-            } catch (IllegalArgumentException e) {
-                return null;
-            }
-        };
-    }
-
-    public static Specification<CustomerTrip> hasTripId(Long tripId) {
-        return (root, query, cb) ->
-                cb.equal(root.get("trip").get("id"), tripId);
-    }
 }

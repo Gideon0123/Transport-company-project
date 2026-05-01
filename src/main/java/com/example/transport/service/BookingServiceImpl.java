@@ -13,6 +13,7 @@ import com.example.transport.repository.CustomerTripRepository;
 import com.example.transport.repository.TripRepository;
 import com.example.transport.repository.UserRepository;
 import com.example.transport.repository.specification.BookingSearchSpecs;
+import com.example.transport.repository.specification.GenericSearchSpecification;
 import com.example.transport.util.CacheKeys;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +28,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 @Service
@@ -181,22 +184,37 @@ public class BookingServiceImpl implements BookingService {
             Long tripId,
             Pageable pageable) {
 
-        Specification<CustomerTrip> spec = Specification.allOf();
+        Map<String, Object> filters = new HashMap<>();
+
+        if (totalPrice != null) {
+            filters.put("totalPrice", totalPrice);
+        }
+
+        if (status != null && !status.isBlank()) {
+            try {
+                filters.put("status", BookingStatus.valueOf(status.toUpperCase()));
+            } catch (IllegalArgumentException ignored) {}
+        }
+
+        if (tripId != null) {
+            filters.put("trip.id", tripId);
+        }
+
+        Specification<CustomerTrip> spec =
+                new GenericSearchSpecification<CustomerTrip>().build(filters);
 
         if (keyword != null && keyword.length() >= 3) {
-            spec = spec.and(BookingSearchSpecs.keywordSearch(keyword));
-        }
-        if (totalPrice != null) {
-            spec = spec.and(BookingSearchSpecs.hasTotalPrice(totalPrice));
-        }
-        if (status != null && !status.isEmpty()) {
-            spec = spec.and(BookingSearchSpecs.hasStatus(status));
-        }
-        if (tripId != null) {
-            spec = spec.and(BookingSearchSpecs.hasTripId(tripId));
+            Specification<CustomerTrip> keywordSpec =
+                    BookingSearchSpecs.keywordSearch(keyword);
+
+            spec = (spec == null)
+                    ? keywordSpec
+                    : spec.and(keywordSpec);
         }
 
-        Page<CustomerTrip> bookingPage = bookingRepository.findAll(spec, pageable);
+        Page<CustomerTrip> bookingPage =
+                bookingRepository.findAll(spec, pageable);
+
         return bookingPage.map(this::mapToResponse);
     }
 }

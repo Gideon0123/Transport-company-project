@@ -27,7 +27,7 @@ public class Trip extends BaseEntity{
 
     private BigDecimal price;
 
-    private LocalDate bookingDate = LocalDate.from(LocalDateTime.now());
+    private LocalDate bookingDate = LocalDate.now();
 
     private LocalDateTime departureDateTime;
 

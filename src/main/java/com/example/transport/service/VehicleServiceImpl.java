@@ -6,12 +6,15 @@ import com.example.transport.enums.VehicleStatus;
 import com.example.transport.enums.VehicleType;
 import com.example.transport.exception.ResourceNotFoundException;
 import com.example.transport.mapper.VehicleMapper;
+import com.example.transport.model.CustomerTrip;
 import com.example.transport.model.Staff;
 import com.example.transport.model.Vehicle;
 import com.example.transport.payload.PagedResponse;
 import com.example.transport.repository.StaffRepository;
 import com.example.transport.repository.TripRepository;
 import com.example.transport.repository.VehicleRepository;
+import com.example.transport.repository.specification.BookingSearchSpecs;
+import com.example.transport.repository.specification.GenericSearchSpecification;
 import com.example.transport.repository.specification.VehicleSearchSpecs;
 import com.example.transport.util.CacheKeys;
 import jakarta.transaction.Transactional;
@@ -26,6 +29,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 @AllArgsConstructor
@@ -165,30 +170,43 @@ public class VehicleServiceImpl implements VehicleService{
                                                    String vehicleStatus,
                                                    Pageable pageable) {
 
-        Specification<Vehicle> spec = Specification.allOf();
+        Map<String, Object> filters = new HashMap<>();
 
-        if (keyword != null && keyword.length() >= 3) {
-            spec = spec.and(VehicleSearchSpecs.keywordSearch(keyword));
-        }
+//        if (keyword != null && keyword.length() >= 3) {
+//            spec = spec.and(VehicleSearchSpecs.keywordSearch(keyword));
+//        }
         if (driverId != null) {
-            spec = spec.and(VehicleSearchSpecs.hasDriverId(driverId));
+            filters.put("driver.id", driverId);
         }
 
         if (vehiclePlate != null && !vehiclePlate.isEmpty()) {
-            spec = spec.and(VehicleSearchSpecs.hasVehiclePlate(vehiclePlate));
+            filters.put("vehiclePlate", vehiclePlate);
         }
 
         if (vehicleType != null && !vehicleType.isEmpty()) {
-            spec = spec.and(VehicleSearchSpecs.hasVehicleType(vehicleType));
+            filters.put("vehicleType", VehicleType.valueOf(vehicleType.toUpperCase().trim()));
         }
 
         if (vehicleStatus != null && !vehicleStatus.isEmpty()) {
-            spec = spec.and(VehicleSearchSpecs.hasVehicleStatus(vehicleStatus));
+            filters.put("status", VehicleStatus.valueOf(vehicleStatus.toUpperCase().trim()));
         }
 
-        Page<Vehicle> vehicles = vehicleRepository.findAll(spec, pageable);
+        Specification<Vehicle> spec =
+                new GenericSearchSpecification<Vehicle>().build(filters);
 
-        return vehicles.map(VehicleMapper::toDTO);
+        if (keyword != null && keyword.length() >= 3) {
+            Specification<Vehicle> keywordSpec =
+                    VehicleSearchSpecs.keywordSearch(keyword);
+
+            spec = (spec == null)
+                    ? keywordSpec
+                    : spec.and(keywordSpec);
+        }
+
+        Page<Vehicle> vehiclePage =
+                vehicleRepository.findAll(spec, pageable);
+
+        return vehiclePage.map(VehicleMapper::toDTO);
     }
 
     @CacheEvict(value = CacheKeys.VEHICLE, key = CacheKeys.VEHICLE_ALL)

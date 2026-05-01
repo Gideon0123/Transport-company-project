@@ -2,6 +2,7 @@ package com.example.transport.service;
 
 import com.example.transport.dto.*;
 import com.example.transport.enums.TripStatus;
+import com.example.transport.enums.VehicleType;
 import com.example.transport.exception.ResourceNotFoundException;
 import com.example.transport.mapper.TripMapper;
 import com.example.transport.model.Staff;
@@ -10,6 +11,7 @@ import com.example.transport.model.Vehicle;
 import com.example.transport.payload.PagedResponse;
 import com.example.transport.repository.TripRepository;
 import com.example.transport.repository.VehicleRepository;
+import com.example.transport.repository.specification.GenericSearchSpecification;
 import com.example.transport.repository.specification.TripSearchSpecs;
 import com.example.transport.util.CacheKeys;
 import jakarta.transaction.Transactional;
@@ -25,6 +27,8 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -181,39 +185,75 @@ public class TripServiceImpl implements TripService{
             String vehiclePlate,
             Pageable pageable) {
 
-        Specification<Trip> spec = Specification.allOf();
+        Map<String, Object> filters = new HashMap<>();
+
+        if (departureLocation != null && !departureLocation.isEmpty()) {
+            filters.put("departureLocation", departureLocation);
+        }
+
+        if (destinationLocation != null && !destinationLocation.isEmpty()) {
+            filters.put("destinationLocation", destinationLocation);
+        }
+
+        if (bookingDate != null) {
+            filters.put("bookingDate", bookingDate);
+        }
+
+        if (vehicleType != null && !vehicleType.isBlank()) {
+            try {
+                filters.put("vehicle.vehicleType", VehicleType.valueOf(vehicleType.toUpperCase()));
+            } catch (IllegalArgumentException ignored) {}
+        }
+
+        if (price != null) {
+            filters.put("price", price);
+        }
+
+        if (tripStatus != null && !tripStatus.isBlank()) {
+            try {
+                filters.put("status", TripStatus.valueOf(tripStatus.toUpperCase().trim()));
+            } catch (IllegalArgumentException ignored) {}
+        }
+
+        if (vehiclePlate != null && !vehiclePlate.isEmpty()) {
+            filters.put("vehicle.vehiclePlate", vehiclePlate);
+        }
+
+        Specification<Trip> spec =
+                new GenericSearchSpecification<Trip>().build(filters);
+        
+        if (departureDateTime != null) {
+            spec = (spec == null)
+                    ? departureDateSpec(departureDateTime)
+                    : spec.and(departureDateSpec(departureDateTime));
+        }
 
         if (keyword != null && keyword.length() >= 3) {
-            spec = spec.and(TripSearchSpecs.keywordSearch(keyword));
-        }
-        if (vehicleType != null && !vehicleType.isEmpty()) {
-            spec = spec.and(TripSearchSpecs.hasVehicleType(vehicleType));
-        }
-        if (departureLocation != null && !departureLocation.isEmpty()) {
-            spec = spec.and(TripSearchSpecs.hasDepartureLocation(departureLocation));
-        }
-        if (destinationLocation != null && !destinationLocation.isEmpty()) {
-            spec = spec.and(TripSearchSpecs.hasDestinationLocation(destinationLocation));
-        }
-        if (bookingDate != null) {
-            spec = spec.and(TripSearchSpecs.bookedOn(bookingDate));
-        }
-        if (departureDateTime != null) {
-            spec = spec.and(TripSearchSpecs.hasDepartureDate(departureDateTime));
-        }
-        if (price != null) {
-            spec = spec.and(TripSearchSpecs.hasPrice(price));
-        }
-        if (tripStatus != null && !tripStatus.isEmpty()) {
-            spec = spec.and(TripSearchSpecs.hasTripStatus(tripStatus));
-        }
-        if (vehiclePlate != null && !vehiclePlate.isEmpty()) {
-            spec = spec.and(TripSearchSpecs.hasVehiclePlate(vehiclePlate));
+            Specification<Trip> keywordSpec =
+                    TripSearchSpecs.keywordSearch(keyword);
+
+            spec = (spec == null)
+                    ? keywordSpec
+                    : spec.and(keywordSpec);
         }
 
-        Page<Trip> tripPage = tripRepository.findAll(spec, pageable);
+        Page<Trip> tripPage =
+                tripRepository.findAll(spec, pageable);
 
         return tripPage.map(TripMapper::toDTO);
+    }
+
+    private Specification<Trip> departureDateSpec(LocalDate date) {
+        return (root, query, cb) -> cb.and(
+                cb.greaterThanOrEqualTo(
+                        root.get("departureDateTime"),
+                        date.atStartOfDay()
+                ),
+                cb.lessThan(
+                        root.get("departureDateTime"),
+                        date.plusDays(1).atStartOfDay()
+                )
+        );
     }
 
     @CacheEvict(value = CacheKeys.TRIP, key = CacheKeys.TRIP_ALL)

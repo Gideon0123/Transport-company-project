@@ -1,73 +1,80 @@
 package com.example.transport.repository.specification;
 
 import com.example.transport.enums.TripStatus;
-import com.example.transport.enums.VehicleType;
 import com.example.transport.model.Trip;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 public class TripSearchSpecs {
 
-    public static Specification<Trip> hasVehicleType(String vehicleType) {
-        return (root, query, criteriaBuilder) -> {
-            try {
-                VehicleType type = VehicleType.valueOf(vehicleType.toUpperCase());
-                return criteriaBuilder.equal(root.get("vehicle").get("vehicleType"), type);
-            } catch (IllegalArgumentException e) {
+    public static Specification<Trip> keywordSearch(String keyword) {
+
+        return (root, query, cb) -> {
+
+            if (keyword == null || keyword.isBlank() || keyword.length() < 2) {
                 return null;
             }
-        };
-    }
-    public static Specification<Trip> keywordSearch(String keyword) {
-        return (root, query, cb) -> {
-            if (keyword == null || keyword.isBlank()) return null;
-            if (keyword.length() < 2) return null;
+
+            List<Predicate> predicates = new ArrayList<>();
 
             String pattern = keyword.toLowerCase() + "%";
 
-            return cb.or(
-                    cb.like(cb.lower(root.get("departureLocation")), pattern),
-                    cb.like(cb.lower(root.get("destinationLocation")), pattern)
-            );
-        };
-    }
+            predicates.add(cb.like(cb.lower(root.get("departureLocation")), pattern));
+            predicates.add(cb.like(cb.lower(root.get("destinationLocation")), pattern));
 
-    public static Specification<Trip> hasDepartureLocation(String departureLocation) {
-        return (root, query, criteriaBuilder) -> criteriaBuilder.equal(root.get("departureLocation"), departureLocation);
-    }
-    public static Specification<Trip> hasDestinationLocation(String destinationLocation) {
-        return (root, query, criteriaBuilder) -> criteriaBuilder.equal(root.get("destinationLocation"), destinationLocation);
-    }
-    public static Specification<Trip> bookedOn(LocalDate bookingDate) {
-        return (root, query, criteriaBuilder) -> criteriaBuilder.equal(root.get("bookingDate").as(LocalDate.class), bookingDate);
-    }
-    public static Specification<Trip> hasDepartureDate(LocalDate date) {
-        return (root, query, cb) -> {
-            LocalDateTime startOfDay = date.atStartOfDay();
-            LocalDateTime endOfDay = date.atTime(23, 59, 59);
-
-            return cb.between(root.get("departureDateTime"), startOfDay, endOfDay);
-        };
-    }
-    public static Specification<Trip> hasPrice(BigDecimal price) {
-        return (root, query, cb) ->
-                cb.equal(root.get("price"), price);
-    }
-    public static Specification<Trip> hasTripStatus(String status) {
-        return (root, query, cb) -> {
             try {
-                TripStatus tripStatus = TripStatus.valueOf(status.toUpperCase());
-                return cb.equal(root.get("status"), tripStatus);
-            } catch (IllegalArgumentException e) {
-                return null;
+                Join<Object, Object> vehicle = root.join("vehicle", JoinType.LEFT);
+
+                predicates.add(cb.like(cb.lower(vehicle.get("vehiclePlate")), pattern));
+                predicates.add(cb.like(cb.lower(vehicle.get("vehicleType").as(String.class)), pattern));
+            } catch (Exception ignored) {}
+
+            try {
+                TripStatus status = TripStatus.valueOf(keyword.toUpperCase());
+                predicates.add(cb.equal(root.get("status"), status));
+            } catch (Exception ignored) {}
+
+            try {
+                LocalDate date = LocalDate.parse(keyword);
+
+                predicates.add(
+                        cb.between(
+                                root.get("departureDateTime"),
+                                date.atStartOfDay(),
+                                date.plusDays(1).atStartOfDay()
+                        )
+                );
+            } catch (Exception e) {
+                System.out.println("Date parse failed: " + keyword);
             }
+
+            try {
+                LocalDate date = LocalDate.parse(keyword);
+
+                predicates.add(
+                        cb.between(
+                                root.get("bookingDate"),
+                                date.atStartOfDay(),
+                                date.plusDays(1).atStartOfDay()
+                        )
+                );
+            } catch (Exception e) {
+                System.out.println("Date parse failed: " + keyword);
+            }
+
+            try {
+                BigDecimal price = new BigDecimal(keyword);
+                predicates.add(cb.equal(root.get("price"), price));
+            } catch (Exception ignored) {}
+
+            return cb.or(predicates.toArray(new Predicate[0]));
         };
-    }
-    public static Specification<Trip> hasVehiclePlate(String plate) {
-        return (root, query, cb) ->
-                cb.equal(root.get("vehicle").get("vehiclePlate"), plate);
     }
 }

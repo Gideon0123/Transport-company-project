@@ -2,7 +2,11 @@ package com.example.transport.repository.specification;
 
 import com.example.transport.enums.VehicleStatus;
 import com.example.transport.enums.VehicleType;
+import com.example.transport.model.Staff;
+import com.example.transport.model.User;
 import com.example.transport.model.Vehicle;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
 
@@ -32,47 +36,46 @@ public class VehicleSearchSpecs {
                 predicates.add(cb.equal(root.get("status"), status));
             } catch (IllegalArgumentException ignored) {}
 
-            // Relationship (driverId) → use EQUAL
             try {
                 Long driverId = Long.valueOf(keyword);
                 predicates.add(cb.equal(root.get("driver").get("id"), driverId));
             } catch (NumberFormatException ignored) {}
 
+            try {
+                Join<Vehicle, Staff> staff = root.join("driver", JoinType.LEFT);
+                Join<Staff, User> user = staff.join("user", JoinType.LEFT);
+
+                predicates.add(cb.like(cb.lower(user.get("firstName")), pattern));
+                predicates.add(cb.like(cb.lower(user.get("lastName")), pattern));
+
+                predicates.add(
+                        cb.like(
+                                cb.lower(
+                                        cb.concat(
+                                                cb.concat(user.get("firstName"), " "),
+                                                user.get("lastName")
+                                        )
+                                ),
+                                pattern
+                        )
+                );
+
+                predicates.add(
+                        cb.like(
+                                cb.lower(
+                                        cb.concat(
+                                                cb.concat(user.get("lastName"), " "),
+                                                user.get("firstName")
+                                        )
+                                ),
+                                pattern
+                        )
+                );
+
+            } catch (Exception ignored) {}
+
+
             return cb.or(predicates.toArray(new Predicate[0]));
         };
     }
-
-    public static Specification<Vehicle> hasDriverId(Long driverId) {
-        return (root, query, cb) ->
-                cb.equal(root.get("driver").get("id"), driverId);
-    }
-
-    public static Specification<Vehicle> hasVehiclePlate(String vehiclePlate) {
-        return (root, query, criteriaBuilder) -> criteriaBuilder.equal(root.get("vehiclePlate"), vehiclePlate);
-    }
-
-    public static Specification<Vehicle> hasVehicleType(String vehicleType) {
-        return (root, query, cb) -> {
-            try {
-                VehicleType type = VehicleType.valueOf(vehicleType.toUpperCase());
-                return cb.equal(root.get("vehicleType"), type);
-            } catch (IllegalArgumentException e) {
-                return null;
-            }
-        };
-    }
-
-    public static Specification<Vehicle> hasVehicleStatus(String vehicleStatus) {
-        return (root, query, cb) -> {
-            if (vehicleStatus == null || vehicleStatus.isBlank()) return null;
-
-            try {
-                VehicleStatus vehicle = VehicleStatus.valueOf(vehicleStatus.trim().toUpperCase());
-                return cb.equal(root.get("status"), vehicle);
-            } catch (IllegalArgumentException e) {
-                throw new RuntimeException("Invalid status: " + vehicleStatus);
-            }
-        };
-    }
-
 }
