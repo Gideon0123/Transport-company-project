@@ -1,7 +1,8 @@
 package com.example.transport.service;
 
-import com.example.transport.dto.BookingRequestDTO;
 import com.example.transport.dto.BookingResponseDTO;
+import com.example.transport.dto.CreateBookingDTO;
+import com.example.transport.mapper.BookingMapper;
 import com.example.transport.payload.PagedResponse;
 import com.example.transport.dto.UpdateBookingRequestDTO;
 import com.example.transport.enums.BookingStatus;
@@ -24,14 +25,12 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -42,52 +41,35 @@ public class BookingServiceImpl implements BookingService {
     private final UserRepository userRepository;
     private final EmailService emailService;
 
-    private BookingResponseDTO mapToResponse(CustomerTrip booking) {
-
-        return BookingResponseDTO.builder()
-                .bookingId(booking.getBookingId())
-                .customerEmail(
-                        booking.getCustomer() != null ? booking.getCustomer().getEmail() : null
-                )
-                .tripId(
-                        booking.getTrip() != null ? booking.getTrip().getTripId() : null
-                )
-                .departureLocation(
-                        booking.getTrip() != null ? booking.getTrip().getDepartureLocation() : null
-                )
-                .departureDateTime(
-                        booking.getTrip() != null ? booking.getTrip().getDepartureDateTime() : null
-                )
-                .destinationLocation(
-                        booking.getTrip() != null ? booking.getTrip().getDestinationLocation() : null
-                )
-                .numberOfSeats(booking.getNumberOfSeats())
-                .pricePerSeat(
-                        booking.getTrip() != null ? booking.getTrip().getPrice() : null
-                )
-                .totalPrice(booking.getTotalPrice())
-                .status(booking.getStatus())
-                .build();
-    }
 
     @Override
+    @Transactional
     @CacheEvict(value = CacheKeys.BOOKING, allEntries = true)
-    public BookingResponseDTO createBooking(BookingRequestDTO request) {
+    public BookingResponseDTO createBooking(CreateBookingDTO request, UserDetails userDetails) {
 
-        String email = Objects.requireNonNull(SecurityContextHolder.getContext().getAuthentication()).getName();
+        String email = userDetails.getUsername();
 
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Email not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         Trip trip = tripRepository.findById(request.getTripId())
                 .orElseThrow(() -> new ResourceNotFoundException("Trip not found"));
 
-        int bookedSeats = bookingRepository.sumSeatsByTrip(trip.getTripId());
-        int availableSeats = trip.getTotalNoOfPassengers() - bookedSeats;
+        Integer bookedSeats = bookingRepository.sumSeatsByTrip(trip.getTripId());
+        int safeBookedSeats = (bookedSeats == null) ? 0 : bookedSeats;
 
-        if (request.getNumberOfSeats() > availableSeats) {
-            throw new RuntimeException("Not enough seats available");
+//        int availableSeats = trip.getTotalNoOfPassengers() - safeBookedSeats;
+//
+//        if (request.getNumberOfSeats() > availableSeats) {
+//            throw new RuntimeException("Not enough seats available");
+//        }
+
+        trip.setTotalNoOfPassengers(trip.getTotalNoOfPassengers()); // trigger version check
+        if (trip.getBookedSeats() + request.getNumberOfSeats() > trip.getTotalNoOfPassengers()) {
+            throw new RuntimeException("Not enough seats");
         }
+
+        trip.setBookedSeats(trip.getBookedSeats() + request.getNumberOfSeats());
 
         BigDecimal totalPrice = trip.getPrice()
                 .multiply(BigDecimal.valueOf(request.getNumberOfSeats()));
@@ -100,11 +82,15 @@ public class BookingServiceImpl implements BookingService {
                 .status(BookingStatus.BOOKED)
                 .build();
 
-        bookingRepository.save(booking);
-        emailService.sendCreatedBooking(booking);
+        CustomerTrip savedBooking = bookingRepository.save(booking);
 
-        return mapToResponse(booking);
+        try {
+            emailService.sendCreatedBooking(savedBooking);
+        } catch (Exception e) {
+            System.err.println("Email failed: " + e.getMessage());
+        }
 
+        return BookingMapper.toDTO(savedBooking);
     }
 
     @Override
@@ -129,20 +115,28 @@ public class BookingServiceImpl implements BookingService {
         CustomerTrip booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
 
-        return mapToResponse(booking);
+        return BookingMapper.toDTO(booking);
     }
 
     @Override
     @Transactional
     @Cacheable(value = CacheKeys.BOOKING, key = "#page + '-' + #size + '-' + #sortBy")
-    public PagedResponse<BookingResponseDTO> getPagedBookings(int page, int size, String sortBy) {
+    public PagedResponse<BookingResponseDTO> getPagedBookings(
+            int page, int size, String sortBy) {
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy));
-        Page<BookingResponseDTO> bookingsPage = bookingRepository.getAllBookingsOptimized(pageable);
-        return new PagedResponse<>(bookingsPage);
+
+        Page<CustomerTrip> bookingPage =
+                bookingRepository.findAllWithRelations(pageable);
+
+        Page<BookingResponseDTO> dtoPage =
+                bookingPage.map(BookingMapper::toDTO);
+
+        return new PagedResponse<>(dtoPage);
     }
 
     @Override
+    @Transactional
     @CacheEvict(value = CacheKeys.BOOKING, allEntries = true)
     public BookingResponseDTO updateBooking(Long bookingId, UpdateBookingRequestDTO request) {
 
@@ -151,6 +145,14 @@ public class BookingServiceImpl implements BookingService {
 
         if (booking.getStatus() == BookingStatus.CANCELLED) {
             throw new RuntimeException("Cannot update cancelled booking");
+        }
+
+        if (request.getNumberOfSeats() == null || request.getNumberOfSeats() <= 0) {
+            throw new IllegalArgumentException("Number of seats must be greater than 0");
+        }
+
+        if (booking.getTrip() == null) {
+            throw new RuntimeException("Booking has no associated trip");
         }
 
         booking.setNumberOfSeats(request.getNumberOfSeats());
@@ -162,18 +164,17 @@ public class BookingServiceImpl implements BookingService {
 
         CustomerTrip updated = bookingRepository.save(booking);
 
-        return mapToResponse(updated);
+        return BookingMapper.toDTO(updated);
     }
 
     @Override
     @Transactional
-    public List<BookingResponseDTO> getMyBookings(String email) {
+    public Page<BookingResponseDTO> getMyBookings(String email, Pageable pageable) {
 
-        List<CustomerTrip> bookings = bookingRepository.findByCustomerEmail(email);
+        Page<CustomerTrip> bookings =
+                bookingRepository.findByCustomerEmail(email, pageable);
 
-        return bookings.stream()
-                .map(this::mapToResponse)
-                .toList();
+        return bookings.map(BookingMapper::toDTO);
     }
 
     @Override
@@ -215,7 +216,7 @@ public class BookingServiceImpl implements BookingService {
         Page<CustomerTrip> bookingPage =
                 bookingRepository.findAll(spec, pageable);
 
-        return bookingPage.map(this::mapToResponse);
+        return bookingPage.map(BookingMapper::toDTO);
     }
 }
 

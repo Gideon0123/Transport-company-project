@@ -1,17 +1,20 @@
 package com.example.transport.controller;
 
-import com.example.transport.dto.BookingRequestDTO;
 import com.example.transport.dto.BookingResponseDTO;
+import com.example.transport.dto.CreateBookingDTO;
 import com.example.transport.payload.ApiResponse;
 import com.example.transport.payload.PagedResponse;
 import com.example.transport.dto.UpdateBookingRequestDTO;
 import com.example.transport.service.BookingService;
 import com.example.transport.util.TraceIdUtil;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -20,7 +23,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/bookings")
@@ -31,13 +33,19 @@ public class BookingController {
     private final BookingService bookingService;
 
     @PostMapping
-    public ResponseEntity<ApiResponse<BookingResponseDTO>> createBooking(@RequestBody BookingRequestDTO request, HttpServletRequest httpServletRequest) {
-        BookingResponseDTO booking = bookingService.createBooking(request);
+    public ResponseEntity<ApiResponse<BookingResponseDTO>> createBooking(
+            @Valid @RequestBody CreateBookingDTO request,
+            @AuthenticationPrincipal UserDetails userDetails,
+            HttpServletRequest httpServletRequest
+    ) {
 
-        return ResponseEntity.ok(
+        BookingResponseDTO booking =
+                bookingService.createBooking(request, userDetails);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(
                 ApiResponse.<BookingResponseDTO>builder()
                         .success(true)
-                        .message("Booking Created successfully")
+                        .message("Booking created successfully")
                         .statusCode(201)
                         .data(booking)
                         .errors(null)
@@ -114,16 +122,19 @@ public class BookingController {
     }
 
     @GetMapping("/my")
-    public ResponseEntity<ApiResponse<List<BookingResponseDTO>>> getMyBookings(
+    public ResponseEntity<ApiResponse<Page<BookingResponseDTO>>> getMyBookings(
             @AuthenticationPrincipal UserDetails userDetails,
+            @PageableDefault(size = 5, sort = "createdAt", direction = Sort.Direction.DESC)
+            Pageable pageable,
             HttpServletRequest request
     ) {
         String email = userDetails.getUsername();
 
-        List<BookingResponseDTO> bookings = bookingService.getMyBookings(email);
+        Page<BookingResponseDTO> bookings =
+                bookingService.getMyBookings(email, pageable);
 
         return ResponseEntity.ok(
-                ApiResponse.<List<BookingResponseDTO>>builder()
+                ApiResponse.<Page<BookingResponseDTO>>builder()
                         .success(true)
                         .message("User bookings fetched successfully")
                         .statusCode(200)
@@ -136,7 +147,7 @@ public class BookingController {
         );
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/{bookingId}")
     public ResponseEntity<ApiResponse<BookingResponseDTO>> updateBooking(
             @PathVariable Long bookingId,
             @RequestBody UpdateBookingRequestDTO request,

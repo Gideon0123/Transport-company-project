@@ -15,10 +15,12 @@ public class SecurityResponseUtil {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public void writeError(HttpServletRequest request,
-                           HttpServletResponse response,
-                           int status,
-                           String message) throws IOException {
+    public void writeError(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            int status,
+            String message
+    ) throws IOException {
 
         ApiResponse<Object> apiResponse = ApiResponse.builder()
                 .success(false)

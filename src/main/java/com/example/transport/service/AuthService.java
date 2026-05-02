@@ -43,7 +43,12 @@ public class AuthService {
 
         String accessToken = jwtService.generateAccessToken(user);
         RefreshToken refreshToken = refreshTokenService.create(user);
-        emailService.customerSignupMail(user);
+
+        try {
+            emailService.customerSignupMail(user);
+        } catch (Exception e) {
+            System.err.println("Email failed: " + e.getMessage());
+        }
 
         return new AuthResponseDTO(accessToken, refreshToken.getToken());
     }
@@ -53,7 +58,7 @@ public class AuthService {
 
 
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                .orElseThrow(() -> new InvalidCredentialsException("Invalid email or password"));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new InvalidCredentialsException("Invalid email or password");

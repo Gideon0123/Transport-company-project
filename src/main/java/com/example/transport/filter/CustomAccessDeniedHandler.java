@@ -38,5 +38,6 @@ public class CustomAccessDeniedHandler implements AccessDeniedHandler {
                 .build();
 
         new ObjectMapper().writeValue(response.getOutputStream(), body);
+
     }
 }

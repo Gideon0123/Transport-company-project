@@ -6,14 +6,12 @@ import com.example.transport.enums.VehicleStatus;
 import com.example.transport.enums.VehicleType;
 import com.example.transport.exception.ResourceNotFoundException;
 import com.example.transport.mapper.VehicleMapper;
-import com.example.transport.model.CustomerTrip;
 import com.example.transport.model.Staff;
 import com.example.transport.model.Vehicle;
 import com.example.transport.payload.PagedResponse;
 import com.example.transport.repository.StaffRepository;
 import com.example.transport.repository.TripRepository;
 import com.example.transport.repository.VehicleRepository;
-import com.example.transport.repository.specification.BookingSearchSpecs;
 import com.example.transport.repository.specification.GenericSearchSpecification;
 import com.example.transport.repository.specification.VehicleSearchSpecs;
 import com.example.transport.util.CacheKeys;
@@ -90,8 +88,6 @@ public class VehicleServiceImpl implements VehicleService{
     @Override
     @Cacheable(value = CacheKeys.VEHICLE, key = "#page + '-' + #size + '-' + #sortBy")
     public PagedResponse<VehicleSummaryDTO> getPagedVehicles(int page, int size, String sortBy) {
-
-        System.out.println("DB HIT: Fetching vehicles from database...");
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy));
         Page<VehicleSummaryDTO> vehiclePage = vehicleRepository.findAllVehiclesOptimized(pageable);

@@ -25,6 +25,12 @@ public class VehicleController {
 
     private final VehicleService vehicleService;
 
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/test-admin")
+    public String test() {
+        return "OK";
+    }
+
     //CREATE
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
     @PostMapping

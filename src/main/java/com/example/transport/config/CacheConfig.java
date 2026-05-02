@@ -34,7 +34,6 @@ public class CacheConfig {
                     .cacheDefaults(config)
                     .build();
         } catch (Exception e) {
-//            throw new RuntimeException(e);
             return new ConcurrentMapCacheManager();
         }
     }

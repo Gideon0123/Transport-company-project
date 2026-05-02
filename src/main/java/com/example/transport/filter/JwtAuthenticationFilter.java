@@ -104,7 +104,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
 
         } catch (ExpiredJwtException e) {
-            responseUtil.writeError(request, response, 401, "User not found");
+            responseUtil.writeError(request, response, 401, "Token Expired!");
             return;
         }
 

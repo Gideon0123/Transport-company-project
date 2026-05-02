@@ -4,6 +4,8 @@ import com.example.transport.payload.ApiResponse;
 import com.example.transport.util.TraceIdUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -14,14 +16,6 @@ import java.util.List;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<ApiResponse<Object>> handleNotFound(
-            ResourceNotFoundException ex,
-            HttpServletRequest request
-    ) {
-        return buildResponse(ex.getMessage(), 404, request);
-    }
-
     @ExceptionHandler(UnauthorizedException.class)
     public ResponseEntity<ApiResponse<Object>> handleUnauthorizedRequest(
             ResourceNotFoundException ex,
@@ -30,12 +24,39 @@ public class GlobalExceptionHandler {
         return buildResponse(ex.getMessage(), 401, request);
     }
 
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ResponseEntity<ApiResponse<Object>> handleInvalidCredentials(
+            InvalidCredentialsException ex,
+            HttpServletRequest request
+    ) {
+        return buildResponse(ex.getMessage(), 401, request);
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ApiResponse<Object>> handleAuthException(
+            AuthenticationException ex,
+            HttpServletRequest request
+    ) {
+
+        return buildResponse(ex.getMessage(), 401, request);
+    }
+
     @ExceptionHandler(BadRequestException.class)
     public ResponseEntity<ApiResponse<Object>> handleBadRequest(
             BadRequestException ex,
             HttpServletRequest request
     ) {
-        return buildResponse(ex.getMessage(), 400, request);
+
+        return buildResponse(ex.getMessage(), 403, request);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiResponse<Object>> handleAccessDenied(
+            AccessDeniedException ex,
+            HttpServletRequest request
+    ) {
+
+        return buildResponse(ex.getMessage(), 403, request);
     }
 
     @ExceptionHandler(ForbiddenException.class)
@@ -46,20 +67,20 @@ public class GlobalExceptionHandler {
         return buildResponse(ex.getMessage(), 403, request);
     }
 
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ApiResponse<Object>> handleNotFound(
+            ResourceNotFoundException ex,
+            HttpServletRequest request
+    ) {
+        return buildResponse(ex.getMessage(), 404, request);
+    }
+
     @ExceptionHandler(ConflictException.class)
     public ResponseEntity<ApiResponse<Object>> handleConflict(
             ConflictException ex,
             HttpServletRequest request
     ) {
         return buildResponse(ex.getMessage(), 409, request);
-    }
-
-    @ExceptionHandler(InvalidCredentialsException.class)
-    public ResponseEntity<ApiResponse<Object>> handleInvalidCredentials(
-            InvalidCredentialsException ex,
-            HttpServletRequest request
-    ) {
-        return buildResponse(ex.getMessage(), 401, request);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

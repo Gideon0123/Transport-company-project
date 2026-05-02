@@ -94,7 +94,6 @@ public class TripServiceImpl implements TripService{
     }
 
     @Override
-//    @CachePut(value = "trips", key = "#id")
     @CacheEvict(value = CacheKeys.TRIP, allEntries = true)
     public TripResponseDTO updateTrip(Long id, UpdateTripRequestDTO dto) {
 
