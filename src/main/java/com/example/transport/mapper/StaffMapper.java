@@ -23,6 +23,8 @@ public class StaffMapper {
         userDTO.setEmail(user.getEmail());
         userDTO.setPhoneNo(user.getPhoneNo());
         userDTO.setUserType(user.getUserType());
+        userDTO.setUserStatus(user.getStatus());
+        userDTO.setRoleType(user.getRoleType());
 
         return getStaffResponseDTO(staff, userDTO);
     }
@@ -30,7 +32,6 @@ public class StaffMapper {
     private static @NonNull StaffResponseDTO getStaffResponseDTO(Staff staff, UserResponseDTO userDTO) {
         StaffResponseDTO dto = new StaffResponseDTO();
         dto.setStaffId(staff.getStaffId());
-        dto.setRoleType(staff.getRoleType());
         dto.setNin(staff.getNin());
         dto.setGuarantorName(staff.getGuarantorName());
         dto.setGuarantorAddress(staff.getGuarantorAddress());

@@ -3,8 +3,12 @@ package com.example.transport.service;
 import com.example.transport.model.CustomerTrip;
 import com.example.transport.model.User;
 import lombok.RequiredArgsConstructor;
+import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Recover;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -15,6 +19,12 @@ public class EmailServiceImpl implements EmailService {
     private final JavaMailSender mailSender;
 
     @Override
+    @Async
+    @Retryable(
+            retryFor = { MailException.class, RuntimeException.class },
+            maxAttempts = 3,
+            backoff = @Backoff(delay = 2000, multiplier = 2)
+    )
     public void sendVerificationEmail(String to, String code) {
 
         SimpleMailMessage message = new SimpleMailMessage();
@@ -24,9 +34,19 @@ public class EmailServiceImpl implements EmailService {
 
         mailSender.send(message);
     }
+    @Recover
+    public void recover(Exception e, String to, String code) {
+        System.err.println("GIVING UP! Failed to send email to " + to + " after 3 retries.");
+        System.err.println("The verification code is " + code);
+    }
 
     @Override
     @Async
+    @Retryable(
+            retryFor = { MailException.class, RuntimeException.class },
+            maxAttempts = 3,
+            backoff = @Backoff(delay = 2000, multiplier = 2)
+    )
     public void sendCreatedBooking(CustomerTrip booking) {
         SimpleMailMessage mailMessage = new SimpleMailMessage();
         mailMessage.setTo(booking.getCustomer().getEmail());
@@ -43,9 +63,21 @@ public class EmailServiceImpl implements EmailService {
 
         mailSender.send(mailMessage);
     }
+    @Recover
+    public void recover(Exception e, CustomerTrip booking) {
+        System.err.println("GIVING UP! Failed to send email to " + booking.getCustomer().getEmail() + " after 3 retries.");
+        System.err.println("""
+                The message is for the customer who just booked a trip
+                """);
+    }
 
-    @Async
     @Override
+    @Async
+    @Retryable(
+            retryFor = { MailException.class, RuntimeException.class },
+            maxAttempts = 3,
+            backoff = @Backoff(delay = 2000, multiplier = 2)
+    )
     public void customerSignupMail(User user) {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(user.getUsername());
@@ -57,6 +89,13 @@ public class EmailServiceImpl implements EmailService {
                 "We Hope to Serve you well as you Journey Around the Country and Beyond");
 
         mailSender.send(message);
+    }
+    @Recover
+    public void recover(Exception e, User user) {
+        System.err.println("GIVING UP! Failed to send email to " + user.getEmail() + " after 3 retries.");
+        System.err.println("""
+                The message is for the customer who just signed up on the app
+                """);
     }
 
 }

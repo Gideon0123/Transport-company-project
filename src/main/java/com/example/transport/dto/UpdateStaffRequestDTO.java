@@ -1,5 +1,7 @@
 package com.example.transport.dto;
 
+import com.example.transport.enums.RoleType;
+import com.example.transport.enums.UserStatus;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -13,7 +15,8 @@ public class UpdateStaffRequestDTO {
     private String password;
     private String phoneNo;
 
-    private String roleType;
+    private RoleType roleType;
+    private UserStatus userStatus;
     private String nin;
 
     private String guarantorName;

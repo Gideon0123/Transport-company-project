@@ -8,8 +8,9 @@ import com.example.transport.util.TraceIdUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -59,15 +60,19 @@ public class VehicleController {
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
     @GetMapping
     public ResponseEntity<ApiResponse<PagedResponse<VehicleSummaryDTO>>> getPagedVehicles(
-            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "5") int size,
             @RequestParam(defaultValue = "vehicleId") String sortBy,
             HttpServletRequest request
     ) {
-        PagedResponse<VehicleSummaryDTO> vehicles = vehicleService.getPagedVehicles(page, size, sortBy);
+        int adjustedPage = Math.max(page - 1, 0);
+        PagedResponse<VehicleSummaryDTO> vehicles = vehicleService.getPagedVehicles(adjustedPage, size, sortBy);
         PagedResponse<VehicleSummaryDTO> response = PagedResponse.<VehicleSummaryDTO>builder()
                 .content(vehicles.getContent())
                 .size(vehicles.getSize())
+                .page(vehicles.getPage())
+                .first(vehicles.isFirst())
+                .last(vehicles.isLast())
                 .totalElements(vehicles.getTotalElements())
                 .totalPages(vehicles.getTotalPages())
                 .build();
@@ -155,17 +160,23 @@ public class VehicleController {
     //SEARCH
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
     @GetMapping("/search")
-    public ResponseEntity<ApiResponse<Page<VehicleResponseDTO>>> searchVehicles(
+    public ResponseEntity<ApiResponse<PagedResponse<VehicleResponseDTO>>> searchVehicles(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Long driverId,
             @RequestParam(required = false) String vehiclePlate,
             @RequestParam(required = false) String vehicleType,
             @RequestParam(required = false) String vehicleStatus,
 
-            @PageableDefault(size = 5, sort = "vehiclePlate")
-            Pageable pageable,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "5") int size,
+            @RequestParam(defaultValue = "vehicleId") String sortBy,
+
             HttpServletRequest request
     ) {
+        //Convert to Spring format (0-based)
+        int adjustedPage = Math.max(page - 1, 0);
+        Pageable pageable = PageRequest.of(adjustedPage, size, Sort.by(sortBy));
+
         Page<VehicleResponseDTO> vehicles = vehicleService.searchVehicles(
                 keyword,
                 driverId,
@@ -174,12 +185,22 @@ public class VehicleController {
                 vehicleStatus,
                 pageable);
 
+        PagedResponse<VehicleResponseDTO> response = PagedResponse.<VehicleResponseDTO>builder()
+                .content(vehicles.getContent())
+                .page(vehicles.getNumber() + 1)   // FIX HERE
+                .size(vehicles.getSize())
+                .totalElements(vehicles.getTotalElements())
+                .totalPages(vehicles.getTotalPages())
+                .first(vehicles.isFirst())
+                .last(vehicles.isLast())
+                .build();
+
         return ResponseEntity.ok(
-                ApiResponse.<Page<VehicleResponseDTO>>builder()
+                ApiResponse.<PagedResponse<VehicleResponseDTO>>builder()
                         .success(true)
                         .message("Vehicles fetched successfully")
                         .statusCode(200)
-                        .data(vehicles)
+                        .data(response)
                         .errors(null)
                         .path(request.getRequestURI())
                         .traceId(TraceIdUtil.generate())

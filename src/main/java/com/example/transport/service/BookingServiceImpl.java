@@ -200,6 +200,9 @@ public class BookingServiceImpl implements BookingService {
         if (tripId != null) {
             filters.put("trip.id", tripId);
         }
+//        if (userId != null) {
+//            filters.put("user.id", userId);
+//        }
 
         Specification<CustomerTrip> spec =
                 new GenericSearchSpecification<CustomerTrip>().build(filters);

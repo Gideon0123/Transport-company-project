@@ -7,10 +7,12 @@ import com.example.transport.payload.PagedResponse;
 import com.example.transport.service.TripService;
 import com.example.transport.util.TraceIdUtil;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
+import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -33,7 +35,9 @@ public class TripController {
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public ResponseEntity<ApiResponse<TripResponseDTO>> createTrip(@RequestBody CreateTripRequestDTO dto, HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<TripResponseDTO>> createTrip(
+            @Valid @RequestBody CreateTripRequestDTO dto,
+            HttpServletRequest request) {
         TripResponseDTO trip = tripService.createTrip(dto);
 
         return ResponseEntity.ok(
@@ -53,14 +57,19 @@ public class TripController {
     //GET ALL TRIPS
     @GetMapping
     public ResponseEntity<ApiResponse<PagedResponse<TripSummaryDTO>>> getPagedTrips(
-            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "5") int size,
-            @RequestParam(defaultValue = "tripId") String sortBy, HttpServletRequest request
+            @RequestParam(defaultValue = "tripId") String sortBy,
+            HttpServletRequest request
     ) {
-        PagedResponse<TripSummaryDTO> trips = tripService.getPagedTrips(page, size, sortBy);
+        int adjustedPage = Math.max(page - 1, 0);
+        PagedResponse<TripSummaryDTO> trips = tripService.getPagedTrips(adjustedPage, size, sortBy);
         PagedResponse<TripSummaryDTO> response = PagedResponse.<TripSummaryDTO>builder()
                 .content(trips.getContent())
                 .size(trips.getSize())
+                .page(trips.getPage())
+                .first(trips.isFirst())
+                .last(trips.isLast())
                 .totalElements(trips.getTotalElements())
                 .totalPages(trips.getTotalPages())
                 .build();
@@ -81,7 +90,9 @@ public class TripController {
 
     //GET TRIP
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<TripResponseDTO>> getTrip(@PathVariable Long id, HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<TripResponseDTO>> getTrip(
+            @PathVariable Long id,
+            HttpServletRequest request) {
         TripResponseDTO trip = tripService.getTrip(id);
 
         return ResponseEntity.ok(
@@ -101,8 +112,10 @@ public class TripController {
     //UPDATE TRIP
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<TripResponseDTO>> updateTrip(@PathVariable Long id,
-                                      @RequestBody UpdateTripRequestDTO dto, HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<TripResponseDTO>> updateTrip(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateTripRequestDTO dto,
+            HttpServletRequest request) {
         TripResponseDTO trip = tripService.updateTrip(id, dto);
 
         return ResponseEntity.ok(
@@ -145,7 +158,7 @@ public class TripController {
 
     //SEARCH TRIP
     @GetMapping("/search")
-    public ResponseEntity<ApiResponse<Page<TripResponseDTO>>> searchTrips(
+    public ResponseEntity<ApiResponse<PagedResponse<TripResponseDTO>>> searchTrips(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String vehicleType,
             @RequestParam(required = false) String departureLocation,
@@ -160,10 +173,16 @@ public class TripController {
             @RequestParam(required = false) String tripStatus,
             @RequestParam(required = false) String vehiclePlate,
 
-            @PageableDefault(size = 5, sort = "price")
-            Pageable pageable,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "5") int size,
+            @RequestParam(defaultValue = "price") String sortBy,
+
             HttpServletRequest request
     ) {
+
+        //Convert to Spring format (0-based)
+        int adjustedPage = Math.max(page - 1, 0);
+        Pageable pageable = PageRequest.of(adjustedPage, size, Sort.by(sortBy));
 
         Page<TripResponseDTO> trips = tripService.searchTrips(
                 keyword,
@@ -178,13 +197,23 @@ public class TripController {
                 pageable
         );
 
+        //Convert back to 1-based
+        PagedResponse<TripResponseDTO> response = PagedResponse.<TripResponseDTO>builder()
+                .content(trips.getContent())
+                .page(trips.getNumber() + 1)
+                .size(trips.getSize())
+                .totalElements(trips.getTotalElements())
+                .totalPages(trips.getTotalPages())
+                .first(trips.isFirst())
+                .last(trips.isLast())
+                .build();
+
         return ResponseEntity.ok(
-                ApiResponse.<Page<TripResponseDTO>>builder()
+                ApiResponse.<PagedResponse<TripResponseDTO>>builder()
                         .success(true)
                         .message("Trips fetched successfully")
                         .statusCode(200)
-                        .data(trips)
-                        .errors(null)
+                        .data(response)
                         .path(request.getRequestURI())
                         .traceId(TraceIdUtil.generate())
                         .timestamp(LocalDateTime.now())

@@ -15,6 +15,8 @@ import java.time.LocalDateTime;
 @Data
 public class TripSimpleDTO {
 
+    private Long tripId;
+
     @JsonSerialize(using = LocalDateSerializer.class)
     @JsonDeserialize(using = LocalDateDeserializer.class)
     private LocalDate bookingDate;

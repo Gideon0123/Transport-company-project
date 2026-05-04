@@ -2,7 +2,6 @@ package com.example.transport.dto;
 
 import com.example.transport.enums.RoleType;
 import com.example.transport.enums.UserStatus;
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -15,11 +14,12 @@ public class StaffSummaryDTO {
     private String bankName;
     private UserStatus status;
 
-    public StaffSummaryDTO(Long staffId,
-                           RoleType roleType,
-                           String nin,
-                           String bankName,
-                           UserStatus status) {
+    public StaffSummaryDTO(
+            Long staffId,
+            RoleType roleType,
+            String nin,
+            String bankName,
+            UserStatus status) {
         this.staffId = staffId;
         this.roleType = roleType;
         this.nin = nin;

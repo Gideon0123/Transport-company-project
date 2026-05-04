@@ -7,11 +7,14 @@ import com.example.transport.enums.UserType;
 import com.example.transport.exception.BadRequestException;
 import com.example.transport.exception.ResourceNotFoundException;
 import com.example.transport.mapper.StaffMapper;
+import com.example.transport.model.CustomerTrip;
 import com.example.transport.model.Staff;
 import com.example.transport.model.User;
 import com.example.transport.payload.PagedResponse;
 import com.example.transport.repository.StaffRepository;
 import com.example.transport.repository.UserRepository;
+import com.example.transport.repository.specification.BookingSearchSpecs;
+import com.example.transport.repository.specification.GenericSearchSpecification;
 import com.example.transport.repository.specification.StaffSearchSpecs;
 import com.example.transport.util.CacheKeys;
 import jakarta.transaction.Transactional;
@@ -27,7 +30,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -53,11 +58,11 @@ public class StaffServiceImpl implements StaffService{
         user.setPassword(passwordEncoder.encode(dto.getPassword()));
         user.setPhoneNo(dto.getPhoneNo());
         user.setUserType(UserType.STAFF);
-        user.setRoleType(RoleType.valueOf(dto.getRoleType()));
+        user.setRoleType(RoleType.valueOf(String.valueOf(dto.getRoleType()).toUpperCase()));
 
         Staff staff = Staff.builder()
                 .user(user)
-                .roleType(RoleType.valueOf(dto.getRoleType().toUpperCase()))
+                .roleType(RoleType.valueOf(String.valueOf(dto.getRoleType()).toUpperCase()))
                 .nin(dto.getNin())
                 .guarantorName(dto.getGuarantorName())
                 .guarantorAddress(dto.getGuarantorAddress())
@@ -78,8 +83,6 @@ public class StaffServiceImpl implements StaffService{
     @Override
     @Cacheable(value = CacheKeys.STAFF, key = "#page + '-' + #size + '-' + #sortBy")
     public PagedResponse<StaffSummaryDTO> getPagedStaffs(int page, int size, String sortBy) {
-
-        System.out.println("DB HIT: Fetching staff from database...");
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy));
         Page<StaffSummaryDTO> staffPage = staffRepository.findAllStaffOptimized(pageable);
@@ -105,7 +108,10 @@ public class StaffServiceImpl implements StaffService{
                 .orElseThrow(() -> new ResourceNotFoundException("Staff not found"));
 
         if (dto.getRoleType() != null) {
-            existingStaff.setRoleType(RoleType.valueOf(dto.getRoleType()));
+            existingStaff.setRoleType(dto.getRoleType());
+        }
+        if (dto.getUserStatus() != null) {
+            existingStaff.setStatus(dto.getUserStatus());
         }
         if (dto.getNin() != null) {
             existingStaff.setNin(dto.getNin());
@@ -150,8 +156,12 @@ public class StaffServiceImpl implements StaffService{
             user.setEmail(dto.getEmail());
         }
 
-        if (dto.getPassword() != null) {
-            user.setPassword(dto.getPassword());
+        if (dto.getUserStatus() != null) {
+            user.setStatus(dto.getUserStatus());
+        }
+
+        if (dto.getRoleType() != null) {
+            user.setRoleType(dto.getRoleType());
         }
 
         return StaffMapper.toDTO(staffRepository.save(existingStaff));
@@ -185,34 +195,75 @@ public class StaffServiceImpl implements StaffService{
             BigDecimal salary,
             Pageable pageable) {
 
-        Specification<Staff> spec = Specification.allOf();
+        Map<String, Object> filters = new HashMap<>();
 
-        if (keyword != null && keyword.length() >= 3) {
-            spec = spec.and(StaffSearchSpecs.keywordSearch(keyword));
-        }
-
-        if (roleType != null && !roleType.isEmpty()) {
-            spec = spec.and(StaffSearchSpecs.hasRoleType(roleType));
+        if (roleType != null && !roleType.isBlank()) {
+            try {
+                filters.put("roleType", RoleType.valueOf(roleType.toUpperCase().trim()));
+            } catch (IllegalArgumentException ignored) {}
         }
 
         if (nin != null && !nin.isEmpty()) {
-            spec = spec.and(StaffSearchSpecs.hasNin(nin));
+            filters.put("nin", nin);
         }
 
         if (bankName != null && !bankName.isEmpty()) {
-            spec = spec.and(StaffSearchSpecs.hasBankName(bankName));
+            filters.put("bankName", bankName);
         }
 
         if (bankAccountNo != null && !bankAccountNo.isEmpty()) {
-            spec = spec.and(StaffSearchSpecs.hasBankAccountNo(bankAccountNo));
+            filters.put("bankAccountNo", bankAccountNo);
         }
 
         if (salary != null) {
-            spec = spec.and((StaffSearchSpecs.hasSalary(salary)));
+            filters.put("salary", salary);
         }
 
-        Page<Staff> staffs = staffRepository.findAll(spec, pageable);
-        return staffs.map(StaffMapper::toDTO);
+        Specification<Staff> spec =
+                new GenericSearchSpecification<Staff>().build(filters);
+
+        if (keyword != null && keyword.length() >= 3) {
+            Specification<Staff> keywordSpec =
+                    StaffSearchSpecs.keywordSearch(keyword);
+
+            spec = (spec == null)
+                    ? keywordSpec
+                    : spec.and(keywordSpec);
+        }
+
+        Page<Staff> staffPage =
+                staffRepository.findAll(spec, pageable);
+
+        return staffPage.map(StaffMapper::toDTO);
+
+//        Specification<Staff> spec = Specification.allOf();
+//
+//        if (keyword != null && keyword.length() >= 3) {
+//            spec = spec.and(StaffSearchSpecs.keywordSearch(keyword));
+//        }
+//
+//        if (roleType != null && !roleType.isEmpty()) {
+//            spec = spec.and(StaffSearchSpecs.hasRoleType(roleType));
+//        }
+//
+//        if (nin != null && !nin.isEmpty()) {
+//            spec = spec.and(StaffSearchSpecs.hasNin(nin));
+//        }
+//
+//        if (bankName != null && !bankName.isEmpty()) {
+//            spec = spec.and(StaffSearchSpecs.hasBankName(bankName));
+//        }
+//
+//        if (bankAccountNo != null && !bankAccountNo.isEmpty()) {
+//            spec = spec.and(StaffSearchSpecs.hasBankAccountNo(bankAccountNo));
+//        }
+//
+//        if (salary != null) {
+//            spec = spec.and((StaffSearchSpecs.hasSalary(salary)));
+//        }
+//
+//        Page<Staff> staffs = staffRepository.findAll(spec, pageable);
+//        return staffs.map(StaffMapper::toDTO);
     }
 
     @Override

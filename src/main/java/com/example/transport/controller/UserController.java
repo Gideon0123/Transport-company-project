@@ -6,10 +6,12 @@ import com.example.transport.payload.PagedResponse;
 import com.example.transport.service.UserService;
 import com.example.transport.util.TraceIdUtil;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -28,15 +30,20 @@ public class UserController {
     //GET ALL USER
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
     @GetMapping
-    public ResponseEntity<ApiResponse<PagedResponse<UserSummaryDTO>>> getPagedUsers(@RequestParam(defaultValue = "0") int page,
-                                                       @RequestParam(defaultValue = "5") int size,
-                                                       @RequestParam(defaultValue = "userId") String sortBy,
-                                                       HttpServletRequest request
+    public ResponseEntity<ApiResponse<PagedResponse<UserSummaryDTO>>> getPagedUsers(@RequestParam(
+            defaultValue = "1") int page,
+            @RequestParam(defaultValue = "5") int size,
+            @RequestParam(defaultValue = "userId") String sortBy,
+            HttpServletRequest request
     ) {
-        PagedResponse<UserSummaryDTO> users = userService.getPagedUsers(page, size, sortBy);
+        int adjustedPage = Math.max(page - 1, 0);
+        PagedResponse<UserSummaryDTO> users = userService.getPagedUsers(adjustedPage, size, sortBy);
         PagedResponse<UserSummaryDTO> response = PagedResponse.<UserSummaryDTO>builder()
                 .content(users.getContent())
                 .size(users.getSize())
+                .page(users.getPage())
+                .first(users.isFirst())
+                .last(users.isLast())
                 .totalElements(users.getTotalElements())
                 .totalPages(users.getTotalPages())
                 .build();
@@ -58,7 +65,9 @@ public class UserController {
     //GET USER
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<UserResponseDTO>> getUser(@PathVariable Long id, HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<UserResponseDTO>> getUser(
+            @PathVariable Long id, HttpServletRequest request
+    ) {
         UserResponseDTO user = userService.getUser(id);
 
         return ResponseEntity.ok(
@@ -78,9 +87,10 @@ public class UserController {
     //UPDATE USER
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<UserResponseDTO>> updateUser(@PathVariable Long id,
-                                                                   @RequestBody UpdateUserRequestDTO dto,
-                                                                   HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<UserResponseDTO>> updateUser(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateUserRequestDTO dto,
+            HttpServletRequest request) {
         UserResponseDTO user = userService.updateUser(id, dto);
 
         return ResponseEntity.ok(
@@ -120,7 +130,7 @@ public class UserController {
     //SEARCH USER
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
     @GetMapping("/search")
-    public ResponseEntity<ApiResponse<Page<UserResponseDTO>>> searchUser(
+    public ResponseEntity<ApiResponse<PagedResponse<UserResponseDTO>>> searchUser(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String firstName,
             @RequestParam(required = false) String lastName,
@@ -128,11 +138,17 @@ public class UserController {
             @RequestParam(required = false) String phoneNo,
             @RequestParam(required = false) String userType,
             @RequestParam(required = false) String userStatus,
+            @RequestParam(required = false) String roleType,
 
-            @PageableDefault(size = 5, sort = "userId")
-            Pageable pageable,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "5") int size,
+            @RequestParam(defaultValue = "userId") String sortBy,
             HttpServletRequest request
     ) {
+        //Convert to Spring format (0-based)
+        int adjustedPage = Math.max(page - 1, 0);
+        Pageable pageable = PageRequest.of(adjustedPage, size, Sort.by(sortBy));
+
         Page<UserResponseDTO> users = userService.searchUser(
                 keyword,
                 firstName,
@@ -141,14 +157,26 @@ public class UserController {
                 phoneNo,
                 userType,
                 userStatus,
+                roleType,
                 pageable);
 
+        //Convert back to 1-based
+        PagedResponse<UserResponseDTO> response = PagedResponse.<UserResponseDTO>builder()
+                .content(users.getContent())
+                .page(users.getNumber() + 1)
+                .size(users.getSize())
+                .totalElements(users.getTotalElements())
+                .totalPages(users.getTotalPages())
+                .first(users.isFirst())
+                .last(users.isLast())
+                .build();
+
         return ResponseEntity.ok(
-                ApiResponse.<Page<UserResponseDTO>>builder()
+                ApiResponse.<PagedResponse<UserResponseDTO>>builder()
                         .success(true)
                         .message("Users fetched successfully")
                         .statusCode(200)
-                        .data(users)
+                        .data(response)
                         .errors(null)
                         .path(request.getRequestURI())
                         .traceId(TraceIdUtil.generate())

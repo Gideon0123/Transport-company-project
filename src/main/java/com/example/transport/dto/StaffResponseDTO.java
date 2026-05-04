@@ -1,6 +1,5 @@
 package com.example.transport.dto;
 
-import com.example.transport.enums.RoleType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -16,7 +15,8 @@ public class StaffResponseDTO {
 
     private Long staffId;
 
-    private RoleType roleType;
+//    private RoleType roleType;
+//    private UserStatus status;
     private String nin;
 
     private String guarantorName;

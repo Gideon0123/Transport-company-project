@@ -168,9 +168,6 @@ public class VehicleServiceImpl implements VehicleService{
 
         Map<String, Object> filters = new HashMap<>();
 
-//        if (keyword != null && keyword.length() >= 3) {
-//            spec = spec.and(VehicleSearchSpecs.keywordSearch(keyword));
-//        }
         if (driverId != null) {
             filters.put("driver.id", driverId);
         }

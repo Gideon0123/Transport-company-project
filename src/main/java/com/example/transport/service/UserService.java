@@ -19,6 +19,7 @@ public interface UserService {
                                      String phoneNo,
                                      String userType,
                                      String userStatus,
+                                     String roleType,
                                      Pageable pageable);
     UserResponseDTO getCurrentUser(String email);
     void changePassword(ChangePasswordRequestDTO request);

@@ -6,10 +6,12 @@ import com.example.transport.payload.PagedResponse;
 import com.example.transport.service.StaffService;
 import com.example.transport.util.TraceIdUtil;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -30,7 +32,10 @@ public class StaffController {
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public ResponseEntity<ApiResponse<StaffResponseDTO>> createStaff(@RequestBody CreateStaffRequestDTO dto, HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<StaffResponseDTO>> createStaff(
+            @Valid @RequestBody CreateStaffRequestDTO dto,
+            HttpServletRequest request
+    ) {
         StaffResponseDTO staff = staffService.createStaff(dto);
 
         return ResponseEntity.ok(
@@ -50,15 +55,21 @@ public class StaffController {
     //GET ALL STAFFS
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
     @GetMapping
-    public ResponseEntity<ApiResponse<PagedResponse<StaffSummaryDTO>>> getPagedStaffs(@RequestParam(defaultValue = "0") int page,
-                                                         @RequestParam(defaultValue = "5") int size,
-                                                         @RequestParam(defaultValue = "staffId") String sortBy,
-                                                         HttpServletRequest request
+    public ResponseEntity<ApiResponse<PagedResponse<StaffSummaryDTO>>> getPagedStaffs(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "5") int size,
+            @RequestParam(defaultValue = "staffId") String sortBy,
+            HttpServletRequest request
     ) {
-        PagedResponse<StaffSummaryDTO> staffs = staffService.getPagedStaffs(page, size, sortBy);
+
+        int adjustedPage = Math.max(page - 1, 0);
+        PagedResponse<StaffSummaryDTO> staffs = staffService.getPagedStaffs(adjustedPage, size, sortBy);
         PagedResponse<StaffSummaryDTO> response = PagedResponse.<StaffSummaryDTO>builder()
                 .content(staffs.getContent())
                 .size(staffs.getSize())
+                .page(staffs.getPage())
+                .first(staffs.isFirst())
+                .last(staffs.isLast())
                 .totalElements(staffs.getTotalElements())
                 .totalPages(staffs.getTotalPages())
                 .build();
@@ -100,9 +111,10 @@ public class StaffController {
     //UPDATE
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<StaffResponseDTO>> updateStaff(@PathVariable Long id,
-                                                                     @RequestBody UpdateStaffRequestDTO dto,
-                                                                     HttpServletRequest request
+    public ResponseEntity<ApiResponse<StaffResponseDTO>> updateStaff(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateStaffRequestDTO dto,
+            HttpServletRequest request
     ) {
         StaffResponseDTO staff = staffService.updateStaff(id, dto);
 
@@ -123,7 +135,10 @@ public class StaffController {
     //DELETE
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Object>> deleteStaff(@PathVariable Long id, HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<Object>> deleteStaff(
+            @PathVariable Long id,
+            HttpServletRequest request
+    ) {
         staffService.deleteStaff(id);
 
         return ResponseEntity.ok(
@@ -143,7 +158,7 @@ public class StaffController {
     //SEARCH
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
     @GetMapping("/search")
-    public ResponseEntity<ApiResponse<Page<StaffResponseDTO>>> searchStaff(
+    public ResponseEntity<ApiResponse<PagedResponse<StaffResponseDTO>>> searchStaff(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String roleType,
             @RequestParam(required = false) String nin,
@@ -151,10 +166,16 @@ public class StaffController {
             @RequestParam(required = false) String bankAccountNo,
             @RequestParam(required = false) BigDecimal salary,
 
-            @PageableDefault(size = 5, sort = "staffId")
-            Pageable pageable,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "5") int size,
+            @RequestParam(defaultValue = "staffId") String sortBy,
             HttpServletRequest request
     ) {
+
+        //Convert to Spring format (0-based)
+        int adjustedPage = Math.max(page - 1, 0);
+        Pageable pageable = PageRequest.of(adjustedPage, size, Sort.by(sortBy));
+
         Page<StaffResponseDTO> staffs = staffService.searchStaff(
                 keyword,
                 roleType,
@@ -165,12 +186,23 @@ public class StaffController {
                 pageable
         );
 
+        //Convert back to 1-based
+        PagedResponse<StaffResponseDTO> response = PagedResponse.<StaffResponseDTO>builder()
+                .content(staffs.getContent())
+                .page(staffs.getNumber() + 1)
+                .size(staffs.getSize())
+                .totalElements(staffs.getTotalElements())
+                .totalPages(staffs.getTotalPages())
+                .first(staffs.isFirst())
+                .last(staffs.isLast())
+                .build();
+
         return ResponseEntity.ok(
-                ApiResponse.<Page<StaffResponseDTO>>builder()
+                ApiResponse.<PagedResponse<StaffResponseDTO>>builder()
                         .success(true)
                         .message("Trips fetched successfully")
                         .statusCode(200)
-                        .data(staffs)
+                        .data(response)
                         .errors(null)
                         .path(request.getRequestURI())
                         .traceId(TraceIdUtil.generate())
@@ -183,15 +215,19 @@ public class StaffController {
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
     @GetMapping("/drivers")
     public ResponseEntity<ApiResponse<PagedResponse<StaffResponseDTO>>> getDrivers(
-            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "5") int size,
-            @RequestParam(defaultValue = "staffId") String sortBy, HttpServletRequest request
+            @RequestParam(defaultValue = "staffId") String sortBy,
+            HttpServletRequest request
     ) {
-        Page<StaffResponseDTO> driversPage = staffService.getDrivers(page, size, sortBy);
+        int adjustedPage = Math.max(page - 1, 0);
+        Page<StaffResponseDTO> driversPage = staffService.getDrivers(adjustedPage, size, sortBy);
         PagedResponse<StaffResponseDTO> response = PagedResponse.<StaffResponseDTO>builder()
                 .content(driversPage.getContent())
-                .page(driversPage.getNumber())
                 .size(driversPage.getSize())
+                .page(driversPage.getNumber() + 1)
+                .first(driversPage.isFirst())
+                .last(driversPage.isLast())
                 .totalElements(driversPage.getTotalElements())
                 .totalPages(driversPage.getTotalPages())
                 .build();
@@ -214,16 +250,19 @@ public class StaffController {
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
     @GetMapping("/ticketers")
     public ResponseEntity<ApiResponse<PagedResponse<StaffResponseDTO>>> getTicketers(
-            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "5") int size,
             @RequestParam(defaultValue = "staffId") String sortBy,
             HttpServletRequest request
     ) {
-        Page<StaffResponseDTO> ticketersPage = staffService.getTicketers(page, size, sortBy);
+        int adjustedPage = Math.max(page - 1, 0);
+        Page<StaffResponseDTO> ticketersPage = staffService.getTicketers(adjustedPage, size, sortBy);
         PagedResponse<StaffResponseDTO> response = PagedResponse.<StaffResponseDTO>builder()
                 .content(ticketersPage.getContent())
-                .page(ticketersPage.getNumber())
                 .size(ticketersPage.getSize())
+                .page(ticketersPage.getNumber() + 1)
+                .first(ticketersPage.isFirst())
+                .last(ticketersPage.isLast())
                 .totalElements(ticketersPage.getTotalElements())
                 .totalPages(ticketersPage.getTotalPages())
                 .build();
@@ -246,16 +285,19 @@ public class StaffController {
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
     @GetMapping("/managers")
     public ResponseEntity<ApiResponse<PagedResponse<StaffResponseDTO>>> getManagers(
-            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "5") int size,
             @RequestParam(defaultValue = "staffId") String sortBy,
             HttpServletRequest request
     ) {
-        Page<StaffResponseDTO> managersPage = staffService.getManagers(page, size, sortBy);
+        int adjustedPage = Math.max(page - 1, 0);
+        Page<StaffResponseDTO> managersPage = staffService.getManagers(adjustedPage, size, sortBy);
         PagedResponse<StaffResponseDTO> response = PagedResponse.<StaffResponseDTO>builder()
                 .content(managersPage.getContent())
-                .page(managersPage.getNumber())
                 .size(managersPage.getSize())
+                .page(managersPage.getNumber() + 1)
+                .first(managersPage.isFirst())
+                .last(managersPage.isLast())
                 .totalElements(managersPage.getTotalElements())
                 .totalPages(managersPage.getTotalPages())
                 .build();
@@ -278,16 +320,19 @@ public class StaffController {
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
     @GetMapping("/admins")
     public ResponseEntity<ApiResponse<PagedResponse<StaffResponseDTO>>> getAdmins(
-            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "5") int size,
             @RequestParam(defaultValue = "staffId") String sortBy,
             HttpServletRequest request
     ) {
-        Page<StaffResponseDTO> adminsPage = staffService.getAdmins(page, size, sortBy);
+        int adjustedPage = Math.max(page - 1, 0);
+        Page<StaffResponseDTO> adminsPage = staffService.getAdmins(adjustedPage, size, sortBy);
         PagedResponse<StaffResponseDTO> response = PagedResponse.<StaffResponseDTO>builder()
                 .content(adminsPage.getContent())
-                .page(adminsPage.getNumber())
                 .size(adminsPage.getSize())
+                .page(adminsPage.getNumber() + 1)
+                .first(adminsPage.isFirst())
+                .last(adminsPage.isLast())
                 .totalElements(adminsPage.getTotalElements())
                 .totalPages(adminsPage.getTotalPages())
                 .build();

@@ -23,6 +23,7 @@ public class BookingMapper {
 
         if (booking.getCustomer() != null){
             UserSimpleDTO userDTO = new UserSimpleDTO();
+            userDTO.setUserId(booking.getCustomer().getUserId());
             userDTO.setFirstName(booking.getCustomer().getFirstName());
             userDTO.setLastName(booking.getCustomer().getLastName());
             userDTO.setEmail(booking.getCustomer().getEmail());
@@ -33,6 +34,7 @@ public class BookingMapper {
 
         if (booking.getTrip() != null){
             TripSimpleDTO tripDTO = new TripSimpleDTO();
+            tripDTO.setTripId(booking.getTrip().getTripId());
             tripDTO.setBookingDate(booking.getTrip().getBookingDate());
             tripDTO.setDepartureDateTime(booking.getTrip().getDepartureDateTime());
             tripDTO.setDepartureLocation(booking.getTrip().getDepartureLocation());

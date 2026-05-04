@@ -78,8 +78,16 @@ public class UserServiceImpl implements UserService{
             existingUser.setPhoneNo(dto.getPhoneNo());
         }
 
-        if (dto.getUserStatus() != null) {
+        if (dto.getUserType() != null) {
+            existingUser.setUserType(dto.getUserType());
+        }
+
+        if (dto.getUserStatus() != null ) {
             existingUser.setStatus(dto.getUserStatus());
+        }
+
+        if (dto.getRoleType() != null) {
+            existingUser.setRoleType(dto.getRoleType());
         }
 
         return UserMapper.toDTO(userRepository.save(existingUser));
@@ -119,6 +127,7 @@ public class UserServiceImpl implements UserService{
             String phoneNo,
             String userType ,
             String userStatus,
+            String roleType,
             Pageable pageable) {
 
         Specification<User> spec = Specification.allOf();
@@ -141,6 +150,10 @@ public class UserServiceImpl implements UserService{
 
         if (userType != null && !userType.isEmpty()) {
             spec = spec.and(UserSearchSpecs.hasUserType(userType));
+        }
+
+        if (roleType != null && !roleType.isEmpty()) {
+            spec = spec.and(UserSearchSpecs.hasRoleType(roleType));
         }
 
         if (userStatus != null && !userStatus.isEmpty()) {

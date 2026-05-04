@@ -74,7 +74,6 @@ public class VehicleSearchSpecs {
 
             } catch (Exception ignored) {}
 
-
             return cb.or(predicates.toArray(new Predicate[0]));
         };
     }

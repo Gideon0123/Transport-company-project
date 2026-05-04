@@ -11,9 +11,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -57,7 +57,9 @@ public class BookingController {
     }
 
     @PutMapping("/{id}/cancel")
-    public ResponseEntity<ApiResponse<Object>> cancelBooking(@PathVariable Long id, HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<Object>> cancelBooking(
+            @PathVariable Long id,
+            HttpServletRequest request) {
         bookingService.cancelBooking(id);
 
         return ResponseEntity.ok(
@@ -75,7 +77,9 @@ public class BookingController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<BookingResponseDTO>> getBooking(@PathVariable Long id, HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<BookingResponseDTO>> getBooking(
+            @PathVariable Long id,
+            HttpServletRequest request) {
         BookingResponseDTO booking = bookingService.getBooking(id);
 
         return ResponseEntity.ok(
@@ -95,14 +99,19 @@ public class BookingController {
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
     @GetMapping
     public ResponseEntity<ApiResponse<PagedResponse<BookingResponseDTO>>> getPagedBookings(
-            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "5") int size,
-            @RequestParam(defaultValue = "bookingId") String sortBy, HttpServletRequest request
+            @RequestParam(defaultValue = "bookingId") String sortBy,
+            HttpServletRequest request
     ) {
-        PagedResponse<BookingResponseDTO> bookings = bookingService.getPagedBookings(page, size, sortBy);
+        int adjustedPage = Math.max(page - 1, 0);
+        PagedResponse<BookingResponseDTO> bookings = bookingService.getPagedBookings(adjustedPage, size, sortBy);
         PagedResponse<BookingResponseDTO> response = PagedResponse.<BookingResponseDTO>builder()
                 .content(bookings.getContent())
                 .size(bookings.getSize())
+                .page(bookings.getPage())
+                .first(bookings.isFirst())
+                .last(bookings.isLast())
                 .totalElements(bookings.getTotalElements())
                 .totalPages(bookings.getTotalPages())
                 .build();
@@ -122,23 +131,37 @@ public class BookingController {
     }
 
     @GetMapping("/my")
-    public ResponseEntity<ApiResponse<Page<BookingResponseDTO>>> getMyBookings(
+    public ResponseEntity<ApiResponse<PagedResponse<BookingResponseDTO>>> getMyBookings(
             @AuthenticationPrincipal UserDetails userDetails,
-            @PageableDefault(size = 5, sort = "createdAt", direction = Sort.Direction.DESC)
-            Pageable pageable,
+
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "5") int size,
+            @RequestParam(defaultValue = "bookingId") String sortBy,
             HttpServletRequest request
     ) {
         String email = userDetails.getUsername();
-
+        //Convert to Spring format (0-based)
+        int adjustedPage = Math.max(page - 1, 0);
+        Pageable pageable = PageRequest.of(adjustedPage, size, Sort.by(sortBy));
         Page<BookingResponseDTO> bookings =
                 bookingService.getMyBookings(email, pageable);
 
+        PagedResponse<BookingResponseDTO> response = PagedResponse.<BookingResponseDTO>builder()
+                .content(bookings.getContent())
+                .page(bookings.getNumber() + 1)
+                .size(bookings.getSize())
+                .totalElements(bookings.getTotalElements())
+                .totalPages(bookings.getTotalPages())
+                .first(bookings.isFirst())
+                .last(bookings.isLast())
+                .build();
+
         return ResponseEntity.ok(
-                ApiResponse.<Page<BookingResponseDTO>>builder()
+                ApiResponse.<PagedResponse<BookingResponseDTO>>builder()
                         .success(true)
                         .message("User bookings fetched successfully")
                         .statusCode(200)
-                        .data(bookings)
+                        .data(response)
                         .errors(null)
                         .path(request.getRequestURI())
                         .traceId(TraceIdUtil.generate())
@@ -150,7 +173,7 @@ public class BookingController {
     @PutMapping("/{bookingId}")
     public ResponseEntity<ApiResponse<BookingResponseDTO>> updateBooking(
             @PathVariable Long bookingId,
-            @RequestBody UpdateBookingRequestDTO request,
+            @Valid @RequestBody UpdateBookingRequestDTO request,
             HttpServletRequest httpServletRequest
     ) {
         BookingResponseDTO booking = bookingService.updateBooking(bookingId, request);
@@ -170,16 +193,21 @@ public class BookingController {
     }
 
     @GetMapping("/search")
-    public ResponseEntity<ApiResponse<Page<BookingResponseDTO>>> searchBookings(
+    public ResponseEntity<ApiResponse<PagedResponse<BookingResponseDTO>>> searchBookings(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) BigDecimal totalPrice,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) Long tripId,
 
-            @PageableDefault(size = 5, sort = "totalPrice")
-            Pageable pageable,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "5") int size,
+            @RequestParam(defaultValue = "totalPrice") String sortBy,
             HttpServletRequest request
     ) {
+
+        //Convert to Spring format (0-based)
+        int adjustedPage = Math.max(page - 1, 0);
+        Pageable pageable = PageRequest.of(adjustedPage, size, Sort.by(sortBy));
 
         Page<BookingResponseDTO> bookingsPage =
                 bookingService.searchBookings(
@@ -187,14 +215,25 @@ public class BookingController {
                         totalPrice,
                         status,
                         tripId,
-                        pageable);
+                        pageable
+                );
+
+        PagedResponse<BookingResponseDTO> response = PagedResponse.<BookingResponseDTO>builder()
+                .content(bookingsPage.getContent())
+                .page(bookingsPage.getNumber() + 1)
+                .size(bookingsPage.getSize())
+                .totalElements(bookingsPage.getTotalElements())
+                .totalPages(bookingsPage.getTotalPages())
+                .first(bookingsPage.isFirst())
+                .last(bookingsPage.isLast())
+                .build();
 
         return ResponseEntity.ok(
-                ApiResponse.<Page<BookingResponseDTO>>builder()
+                ApiResponse.<PagedResponse<BookingResponseDTO>>builder()
                         .success(true)
                         .message("Bookings fetched successfully")
                         .statusCode(200)
-                        .data(bookingsPage)
+                        .data(response)
                         .errors(null)
                         .path(request.getRequestURI())
                         .traceId(TraceIdUtil.generate())
