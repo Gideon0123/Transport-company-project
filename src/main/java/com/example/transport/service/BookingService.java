@@ -1,6 +1,5 @@
 package com.example.transport.service;
 
-import com.example.transport.dto.BookingRequestDTO;
 import com.example.transport.dto.BookingResponseDTO;
 import com.example.transport.dto.CreateBookingDTO;
 import com.example.transport.payload.PagedResponse;
@@ -10,6 +9,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 public interface BookingService {
 
@@ -21,8 +21,22 @@ public interface BookingService {
     BookingResponseDTO updateBooking(Long bookingId, UpdateBookingRequestDTO request);
     Page<BookingResponseDTO> searchBookings(
         String keyword,
+        Long bookingId,
         BigDecimal totalPrice,
         String status,
+
+        Long userId,
+        String firstName,
+        String lastName,
+        String email,
+        String phoneNo,
+
         Long tripId,
-        Pageable pageable);
+        LocalDate departureDateTime,
+        String departureLocation,
+        String destinationLocation,
+        BigDecimal price,
+        Pageable pageable
+    );
+
 }

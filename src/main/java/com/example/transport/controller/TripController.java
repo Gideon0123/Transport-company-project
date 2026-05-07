@@ -160,7 +160,7 @@ public class TripController {
     @GetMapping("/search")
     public ResponseEntity<ApiResponse<PagedResponse<TripResponseDTO>>> searchTrips(
             @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) String vehicleType,
+            @RequestParam(required = false) Long tripId,
             @RequestParam(required = false) String departureLocation,
             @RequestParam(required = false) String destinationLocation,
             @RequestParam(required = false)
@@ -171,6 +171,9 @@ public class TripController {
             LocalDate departureDateTime,
             @RequestParam(required = false) BigDecimal price,
             @RequestParam(required = false) String tripStatus,
+
+            @RequestParam(required = false) Long vehicleId,
+            @RequestParam(required = false) String vehicleType,
             @RequestParam(required = false) String vehiclePlate,
 
             @RequestParam(defaultValue = "1") int page,
@@ -186,13 +189,16 @@ public class TripController {
 
         Page<TripResponseDTO> trips = tripService.searchTrips(
                 keyword,
-                vehicleType,
+                tripId,
                 departureLocation,
                 destinationLocation,
                 bookingDate,
                 departureDateTime,
                 price,
                 tripStatus,
+
+                vehicleId,
+                vehicleType,
                 vehiclePlate,
                 pageable
         );

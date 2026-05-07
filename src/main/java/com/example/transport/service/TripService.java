@@ -18,13 +18,16 @@ public interface TripService {
     void deleteTrip(Long id);
     Page<TripResponseDTO> searchTrips(
             String keyword,
-            String vehicleType,
+            Long tripId,
             String departureLocation,
             String destinationLocation,
             LocalDate bookingDate,
             LocalDate departureDateTime,
             BigDecimal price,
             String tripStatus,
+
+            Long vehicleId,
+            String vehicleType,
             String vehiclePlate,
             Pageable pageable
     );

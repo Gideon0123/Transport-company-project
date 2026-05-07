@@ -7,13 +7,11 @@ import com.example.transport.enums.UserType;
 import com.example.transport.exception.BadRequestException;
 import com.example.transport.exception.ResourceNotFoundException;
 import com.example.transport.mapper.StaffMapper;
-import com.example.transport.model.CustomerTrip;
 import com.example.transport.model.Staff;
 import com.example.transport.model.User;
 import com.example.transport.payload.PagedResponse;
 import com.example.transport.repository.StaffRepository;
 import com.example.transport.repository.UserRepository;
-import com.example.transport.repository.specification.BookingSearchSpecs;
 import com.example.transport.repository.specification.GenericSearchSpecification;
 import com.example.transport.repository.specification.StaffSearchSpecs;
 import com.example.transport.util.CacheKeys;
@@ -188,19 +186,26 @@ public class StaffServiceImpl implements StaffService{
     @Override
     public Page<StaffResponseDTO> searchStaff(
             String keyword,
-            String roleType,
+            Long staffId,
             String nin,
             String bankName,
             String bankAccountNo,
             BigDecimal salary,
+
+            Long userId,
+            String firstName,
+            String lastName,
+            String email,
+            String phoneNo,
+            String userType,
+            String roleType,
+            String userStatus,
             Pageable pageable) {
 
         Map<String, Object> filters = new HashMap<>();
 
-        if (roleType != null && !roleType.isBlank()) {
-            try {
-                filters.put("roleType", RoleType.valueOf(roleType.toUpperCase().trim()));
-            } catch (IllegalArgumentException ignored) {}
+        if (staffId != null) {
+            filters.put("staffId", staffId);
         }
 
         if (nin != null && !nin.isEmpty()) {
@@ -217,6 +222,45 @@ public class StaffServiceImpl implements StaffService{
 
         if (salary != null) {
             filters.put("salary", salary);
+        }
+        // user search fields
+
+        if (userId != null) {
+            filters.put("user.id", userId);
+        }
+
+        if (firstName != null && !firstName.isEmpty()) {
+            filters.put("user.firstName", firstName);
+        }
+
+        if (lastName != null && !lastName.isEmpty()) {
+            filters.put("user.lastName", lastName);
+        }
+
+        if (email != null && !email.isEmpty()) {
+            filters.put("user.email", email);
+        }
+
+        if (phoneNo != null && !phoneNo.isEmpty()) {
+            filters.put("user.phoneNo", phoneNo);
+        }
+
+        if (userType != null && !userType.isBlank()) {
+            try {
+                filters.put("user.userType", UserType.valueOf(userType.toUpperCase().trim()));
+            } catch (IllegalArgumentException ignored) {}
+        }
+
+        if (roleType != null && !roleType.isBlank()) {
+            try {
+                filters.put("roleType", RoleType.valueOf(roleType.toUpperCase().trim()));
+            } catch (IllegalArgumentException ignored) {}
+        }
+
+        if (userStatus != null && !userStatus.isBlank()) {
+            try {
+                filters.put("status", UserStatus.valueOf(userStatus.toUpperCase().trim()));
+            } catch (IllegalArgumentException ignored) {}
         }
 
         Specification<Staff> spec =
@@ -236,34 +280,6 @@ public class StaffServiceImpl implements StaffService{
 
         return staffPage.map(StaffMapper::toDTO);
 
-//        Specification<Staff> spec = Specification.allOf();
-//
-//        if (keyword != null && keyword.length() >= 3) {
-//            spec = spec.and(StaffSearchSpecs.keywordSearch(keyword));
-//        }
-//
-//        if (roleType != null && !roleType.isEmpty()) {
-//            spec = spec.and(StaffSearchSpecs.hasRoleType(roleType));
-//        }
-//
-//        if (nin != null && !nin.isEmpty()) {
-//            spec = spec.and(StaffSearchSpecs.hasNin(nin));
-//        }
-//
-//        if (bankName != null && !bankName.isEmpty()) {
-//            spec = spec.and(StaffSearchSpecs.hasBankName(bankName));
-//        }
-//
-//        if (bankAccountNo != null && !bankAccountNo.isEmpty()) {
-//            spec = spec.and(StaffSearchSpecs.hasBankAccountNo(bankAccountNo));
-//        }
-//
-//        if (salary != null) {
-//            spec = spec.and((StaffSearchSpecs.hasSalary(salary)));
-//        }
-//
-//        Page<Staff> staffs = staffRepository.findAll(spec, pageable);
-//        return staffs.map(StaffMapper::toDTO);
     }
 
     @Override

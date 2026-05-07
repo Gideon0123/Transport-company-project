@@ -15,12 +15,22 @@ public interface StaffService {
     void deleteStaff(Long id);
     Page<StaffResponseDTO> searchStaff(
             String keyword,
-            String roleType,
+            Long staffId,
             String nin,
             String bankName,
             String bankAccountNo,
             BigDecimal salary,
-            Pageable pageable);
+
+            Long userId,
+            String firstName,
+            String lastName,
+            String email,
+            String phoneNo,
+            String userType,
+            String roleType,
+            String userStatus,
+            Pageable pageable
+    );
     Page<StaffResponseDTO> getDrivers(int page, int size, String sortBy);
     Page<StaffResponseDTO> getTicketers(int page, int size, String sortBy);
     Page<StaffResponseDTO> getManagers(int page, int size, String sortBy);

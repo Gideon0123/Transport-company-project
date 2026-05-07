@@ -162,10 +162,14 @@ public class VehicleController {
     @GetMapping("/search")
     public ResponseEntity<ApiResponse<PagedResponse<VehicleResponseDTO>>> searchVehicles(
             @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) Long driverId,
+            @RequestParam(required = false) Long vehicleId,
             @RequestParam(required = false) String vehiclePlate,
             @RequestParam(required = false) String vehicleType,
             @RequestParam(required = false) String vehicleStatus,
+
+            @RequestParam(required = false) Long driverId,
+            @RequestParam(required = false) String firstName,
+            @RequestParam(required = false) String lastName,
 
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "5") int size,
@@ -179,11 +183,15 @@ public class VehicleController {
 
         Page<VehicleResponseDTO> vehicles = vehicleService.searchVehicles(
                 keyword,
-                driverId,
+                vehicleId,
                 vehiclePlate,
                 vehicleType,
                 vehicleStatus,
-                pageable);
+                driverId,
+                firstName,
+                lastName,
+                pageable
+        );
 
         PagedResponse<VehicleResponseDTO> response = PagedResponse.<VehicleResponseDTO>builder()
                 .content(vehicles.getContent())

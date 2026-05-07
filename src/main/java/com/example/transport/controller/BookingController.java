@@ -14,6 +14,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -22,6 +23,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @RestController
@@ -195,13 +197,26 @@ public class BookingController {
     @GetMapping("/search")
     public ResponseEntity<ApiResponse<PagedResponse<BookingResponseDTO>>> searchBookings(
             @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long bookingId,
             @RequestParam(required = false) BigDecimal totalPrice,
             @RequestParam(required = false) String status,
+
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) String firstName,
+            @RequestParam(required = false) String lastName,
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false) String phoneNo,
+
             @RequestParam(required = false) Long tripId,
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate departureDateTime,
+            @RequestParam(required = false) String departureLocation,
+            @RequestParam(required = false) String destinationLocation,
+            @RequestParam(required = false) BigDecimal price,
 
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "5") int size,
-            @RequestParam(defaultValue = "totalPrice") String sortBy,
+            @RequestParam(defaultValue = "bookingId") String sortBy,
             HttpServletRequest request
     ) {
 
@@ -212,9 +227,21 @@ public class BookingController {
         Page<BookingResponseDTO> bookingsPage =
                 bookingService.searchBookings(
                         keyword,
+                        bookingId,
                         totalPrice,
                         status,
+
+                        userId,
+                        firstName,
+                        lastName,
+                        email,
+                        phoneNo,
+
                         tripId,
+                        departureDateTime,
+                        departureLocation,
+                        destinationLocation,
+                        price,
                         pageable
                 );
 

@@ -160,11 +160,20 @@ public class StaffController {
     @GetMapping("/search")
     public ResponseEntity<ApiResponse<PagedResponse<StaffResponseDTO>>> searchStaff(
             @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) String roleType,
+            @RequestParam(required = false) Long staffId,
             @RequestParam(required = false) String nin,
             @RequestParam(required = false) String bankName,
             @RequestParam(required = false) String bankAccountNo,
             @RequestParam(required = false) BigDecimal salary,
+
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) String firstName,
+            @RequestParam(required = false) String lastName,
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false) String phoneNo,
+            @RequestParam(required = false) String userType,
+            @RequestParam(required = false) String roleType,
+            @RequestParam(required = false) String userStatus,
 
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "5") int size,
@@ -178,11 +187,20 @@ public class StaffController {
 
         Page<StaffResponseDTO> staffs = staffService.searchStaff(
                 keyword,
-                roleType,
+                staffId,
                 nin,
                 bankName,
                 bankAccountNo,
                 salary,
+
+                userId,
+                firstName,
+                lastName,
+                email,
+                phoneNo,
+                userType,
+                roleType,
+                userStatus,
                 pageable
         );
 

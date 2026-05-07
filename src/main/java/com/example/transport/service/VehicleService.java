@@ -13,9 +13,13 @@ public interface VehicleService {
     void deleteVehicle(Long id);
     Page<VehicleResponseDTO> searchVehicles (
             String keyword,
-            Long driverId,
+            Long vehicleId,
             String vehiclePlate,
             String vehicleType,
             String vehicleStatus,
-            Pageable pageable);
+            Long driverId,
+            String firstName,
+            String lastName,
+            Pageable pageable
+    );
 }

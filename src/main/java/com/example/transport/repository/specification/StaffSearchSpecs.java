@@ -95,32 +95,4 @@ public class StaffSearchSpecs {
         };
     }
 
-    public static Specification<Staff> hasRoleType(String roleType) {
-        return (root, query, cb) -> {
-            try {
-                RoleType role = RoleType.valueOf(roleType.toUpperCase());
-                return cb.equal(root.get("roleType"), role);
-            } catch (IllegalArgumentException e) {
-                return null;
-            }
-        };
-    }
-
-    public static Specification<Staff> hasNin(String nin) {
-        return (root, query, criteriaBuilder) -> criteriaBuilder.equal(root.get("nin"), nin);
-    }
-
-    public static Specification<Staff> hasBankName(String bankName) {
-        return (root, query, criteriaBuilder) -> criteriaBuilder.equal(root.get("bankName"), bankName);
-    }
-
-    public static Specification<Staff> hasBankAccountNo(String bankAccountNo) {
-        return (root, query, criteriaBuilder) -> criteriaBuilder.equal(root.get("bankAccountNo"), bankAccountNo);
-    }
-
-    public static Specification<Staff> hasSalary(BigDecimal salary) {
-        return (root, query, cb) ->
-                cb.equal(root.get("salary"), salary);
-    }
-
 }

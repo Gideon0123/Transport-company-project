@@ -159,17 +159,22 @@ public class VehicleServiceImpl implements VehicleService{
     }
 
     @Override
-    public Page<VehicleResponseDTO> searchVehicles(String keyword,
-                                                   Long driverId,
-                                                   String vehiclePlate,
-                                                   String vehicleType,
-                                                   String vehicleStatus,
-                                                   Pageable pageable) {
+    public Page<VehicleResponseDTO> searchVehicles(
+            String keyword,
+            Long vehicleId,
+            String vehiclePlate,
+            String vehicleType,
+            String vehicleStatus,
+            Long driverId,
+            String firstName,
+            String lastName,
+            Pageable pageable
+    ) {
 
         Map<String, Object> filters = new HashMap<>();
 
-        if (driverId != null) {
-            filters.put("driver.id", driverId);
+        if (vehicleId != null) {
+            filters.put("vehicleId", vehicleId);
         }
 
         if (vehiclePlate != null && !vehiclePlate.isEmpty()) {
@@ -182,6 +187,19 @@ public class VehicleServiceImpl implements VehicleService{
 
         if (vehicleStatus != null && !vehicleStatus.isEmpty()) {
             filters.put("status", VehicleStatus.valueOf(vehicleStatus.toUpperCase().trim()));
+        }
+        // Driver's search params
+
+        if (driverId != null) {
+            filters.put("driver.id", driverId);
+        }
+
+        if (firstName != null && !firstName.isEmpty()) {
+            filters.put("driver.user.firstName", firstName);
+        }
+
+        if (lastName != null && !lastName.isEmpty()) {
+            filters.put("driver.user.lastName", lastName);
         }
 
         Specification<Vehicle> spec =

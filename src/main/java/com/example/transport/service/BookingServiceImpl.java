@@ -29,6 +29,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -180,12 +181,29 @@ public class BookingServiceImpl implements BookingService {
     @Override
     public Page<BookingResponseDTO> searchBookings(
             String keyword,
+            Long bookingId,
             BigDecimal totalPrice,
             String status,
+
+            Long userId,
+            String firstName,
+            String lastName,
+            String email,
+            String phoneNo,
+
             Long tripId,
-            Pageable pageable) {
+            LocalDate departureDateTime,
+            String departureLocation,
+            String destinationLocation,
+            BigDecimal price,
+            Pageable pageable
+    ) {
 
         Map<String, Object> filters = new HashMap<>();
+
+        if (bookingId != null) {
+            filters.put("bookingId", bookingId);
+        }
 
         if (totalPrice != null) {
             filters.put("totalPrice", totalPrice);
@@ -196,13 +214,48 @@ public class BookingServiceImpl implements BookingService {
                 filters.put("status", BookingStatus.valueOf(status.toUpperCase()));
             } catch (IllegalArgumentException ignored) {}
         }
+        // customer search params
+
+        if (userId != null) {
+            filters.put("customer.id", userId);
+        }
+
+        if (firstName != null && !firstName.isBlank()) {
+            filters.put("customer.firstName", firstName);
+        }
+
+        if (lastName != null && !lastName.isBlank()) {
+            filters.put("customer.lastName", lastName);
+        }
+
+        if (email != null && !email.isBlank()) {
+            filters.put("customer.email", email);
+        }
+
+        if (phoneNo != null && !phoneNo.isBlank()) {
+            filters.put("customer.phoneNo", phoneNo);
+        }
+        // Trip search params
 
         if (tripId != null) {
             filters.put("trip.id", tripId);
         }
-//        if (userId != null) {
-//            filters.put("user.id", userId);
-//        }
+
+        if (departureDateTime != null) {
+            filters.put("trip.departureDateTime", departureDateTime);
+        }
+
+        if (departureLocation != null && !departureLocation.isBlank()) {
+            filters.put("trip.departureLocation", departureLocation);
+        }
+
+        if (destinationLocation != null && !destinationLocation.isBlank()) {
+            filters.put("trip.destinationLocation", destinationLocation);
+        }
+
+        if (price != null) {
+            filters.put("trip.price", price);
+        }
 
         Specification<CustomerTrip> spec =
                 new GenericSearchSpecification<CustomerTrip>().build(filters);

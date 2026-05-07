@@ -174,17 +174,25 @@ public class TripServiceImpl implements TripService{
     @Override
     public Page<TripResponseDTO> searchTrips(
             String keyword,
-            String vehicleType,
+            Long tripId,
             String departureLocation,
             String destinationLocation,
             LocalDate bookingDate,
             LocalDate departureDateTime,
             BigDecimal price,
             String tripStatus,
+
+            Long vehicleId,
+            String vehicleType,
             String vehiclePlate,
-            Pageable pageable) {
+            Pageable pageable
+    ) {
 
         Map<String, Object> filters = new HashMap<>();
+
+        if (tripId != null) {
+            filters.put("tripId", tripId);
+        }
 
         if (departureLocation != null && !departureLocation.isEmpty()) {
             filters.put("departureLocation", departureLocation);
@@ -198,11 +206,10 @@ public class TripServiceImpl implements TripService{
             filters.put("bookingDate", bookingDate);
         }
 
-        if (vehicleType != null && !vehicleType.isBlank()) {
-            try {
-                filters.put("vehicle.vehicleType", VehicleType.valueOf(vehicleType.toUpperCase()));
-            } catch (IllegalArgumentException ignored) {}
+        if (departureDateTime != null) {
+            filters.put("departureDateTime", departureDateTime);
         }
+
 
         if (price != null) {
             filters.put("price", price);
@@ -211,6 +218,17 @@ public class TripServiceImpl implements TripService{
         if (tripStatus != null && !tripStatus.isBlank()) {
             try {
                 filters.put("status", TripStatus.valueOf(tripStatus.toUpperCase().trim()));
+            } catch (IllegalArgumentException ignored) {}
+        }
+        // Vehicles search params
+
+        if (vehicleId != null) {
+            filters.put("vehicle.id", vehicleId);
+        }
+
+        if (vehicleType != null && !vehicleType.isBlank()) {
+            try {
+                filters.put("vehicle.vehicleType", VehicleType.valueOf(vehicleType.toUpperCase()));
             } catch (IllegalArgumentException ignored) {}
         }
 
