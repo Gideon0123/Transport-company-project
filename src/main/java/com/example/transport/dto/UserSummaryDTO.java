@@ -16,12 +16,14 @@ public class UserSummaryDTO {
     private UserType userType;
     private UserStatus status;
 
-    public UserSummaryDTO(Long userId,
-                          String firstName,
-                          String lastName,
-                          String email,
-                          UserType userType,
-                          UserStatus status) {
+    public UserSummaryDTO(
+            Long userId,
+            String firstName,
+            String lastName,
+            String email,
+            UserType userType,
+            UserStatus status
+    ) {
         this.userId = userId;
         this.firstName = firstName;
         this.lastName = lastName;

@@ -30,8 +30,8 @@ public class UserController {
     //GET ALL USER
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
     @GetMapping
-    public ResponseEntity<ApiResponse<PagedResponse<UserSummaryDTO>>> getPagedUsers(@RequestParam(
-            defaultValue = "1") int page,
+    public ResponseEntity<ApiResponse<PagedResponse<UserSummaryDTO>>> getPagedUsers(
+            @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "5") int size,
             @RequestParam(defaultValue = "userId") String sortBy,
             HttpServletRequest request
@@ -109,7 +109,10 @@ public class UserController {
 
     //DELETE USER
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Object>> deleteUser(@PathVariable Long id, HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<Object>> deleteUser(
+            @PathVariable Long id,
+            HttpServletRequest request
+    ) {
 
         userService.deleteUser(id);
 

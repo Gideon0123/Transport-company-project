@@ -8,7 +8,6 @@ import java.io.Serializable;
 
 @Data
 @NoArgsConstructor
-//@AllArgsConstructor
 public class CachedUserDTO implements Serializable {
 
     @Serial

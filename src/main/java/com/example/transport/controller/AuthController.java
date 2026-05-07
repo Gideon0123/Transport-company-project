@@ -9,6 +9,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -26,23 +28,34 @@ public class AuthController {
 
     //REGISTER
     @PostMapping("/register")
-    public ResponseEntity<ApiResponse<Object>> register(
+    public ResponseEntity<ApiResponse<LoginResponseDTO>> register(
             @RequestBody RegisterRequestDTO request,
             HttpServletResponse response,
             HttpServletRequest httpRequest
     ) {
 
-        AuthResponseDTO auth = service.register(request);
+//        AuthResponseDTO auth = service.register(request);
+        LoginResponseDTO auth = service.register(request);
 
-        CookieUtil.addAccessToken(response, auth.getAccessToken());
-        CookieUtil.addRefreshToken(response, auth.getRefreshToken());
+//        CookieUtil.addAccessToken(response, auth.getAccessToken());
+//        CookieUtil.addRefreshToken(response, auth.getRefreshToken());
+
+        CookieUtil.addAccessToken(
+                response,
+                auth.getAuthResponse().getAccessToken()
+        );
+
+        CookieUtil.addRefreshToken(
+                response,
+                auth.getAuthResponse().getRefreshToken()
+        );
 
         return ResponseEntity.status(201).body(
-                ApiResponse.builder()
+                ApiResponse.<LoginResponseDTO>builder()
                         .success(true)
                         .message("Signup successful")
                         .statusCode(201)
-                        .data(null)
+                        .data(auth)
                         .errors(null)
                         .path(httpRequest.getRequestURI())
                         .traceId(TraceIdUtil.generate())
@@ -53,23 +66,30 @@ public class AuthController {
 
     //LOGIN
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<Object>> login(
+    public ResponseEntity<ApiResponse<LoginResponseDTO>> login(
             @RequestBody LoginRequestDTO request,
             HttpServletResponse response,
             HttpServletRequest httpRequest
     ) {
 
-        AuthResponseDTO auth = service.login(request);
+        LoginResponseDTO loginResponse = service.login(request);
 
-        CookieUtil.addAccessToken(response, auth.getAccessToken());
-        CookieUtil.addRefreshToken(response, auth.getRefreshToken());
+        CookieUtil.addAccessToken(
+                response,
+                loginResponse.getAuthResponse().getAccessToken()
+        );
+
+        CookieUtil.addRefreshToken(
+                response,
+                loginResponse.getAuthResponse().getRefreshToken()
+        );
 
         return ResponseEntity.ok(
-                ApiResponse.builder()
+                ApiResponse.<LoginResponseDTO>builder()
                         .success(true)
                         .message("Login successful")
                         .statusCode(200)
-                        .data(null)
+                        .data(loginResponse)
                         .errors(null)
                         .path(httpRequest.getRequestURI())
                         .traceId(TraceIdUtil.generate())
@@ -80,7 +100,8 @@ public class AuthController {
 
     //REFRESH TOKEN
     @PostMapping("/refresh")
-    public ResponseEntity<ApiResponse<Object>> refresh(
+    public ResponseEntity<ApiResponse<LoginResponseDTO>> refresh(
+            @AuthenticationPrincipal UserDetails userDetails,
             HttpServletRequest request,
             HttpServletResponse response
     ) {
@@ -95,17 +116,24 @@ public class AuthController {
             }
         }
 
-        AuthResponseDTO auth = service.refresh(refreshToken);
+        LoginResponseDTO refresh = service.refresh(refreshToken, userDetails);
 
-        CookieUtil.addAccessToken(response, auth.getAccessToken());
-        CookieUtil.addRefreshToken(response, auth.getRefreshToken());
+        CookieUtil.addAccessToken(
+                response,
+                refresh.getAuthResponse().getAccessToken()
+        );
+
+        CookieUtil.addRefreshToken(
+                response,
+                refresh.getAuthResponse().getRefreshToken()
+        );
 
         return ResponseEntity.ok(
-                ApiResponse.builder()
+                ApiResponse.<LoginResponseDTO>builder()
                         .success(true)
-                        .message("Token refreshed successfully")
+                        .message("Refreshed successfully")
                         .statusCode(200)
-                        .data(null)
+                        .data(refresh)
                         .errors(null)
                         .path(request.getRequestURI())
                         .traceId(TraceIdUtil.generate())

@@ -91,7 +91,10 @@ public class StaffController {
     //GET STAFF
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<StaffResponseDTO>> getStaff(@PathVariable Long id, HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<StaffResponseDTO>> getStaff(
+            @PathVariable Long id,
+            HttpServletRequest request
+    ) {
         StaffResponseDTO staff = staffService.getStaff(id);
 
         return ResponseEntity.ok(

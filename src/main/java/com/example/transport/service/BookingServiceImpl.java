@@ -2,6 +2,7 @@ package com.example.transport.service;
 
 import com.example.transport.dto.BookingResponseDTO;
 import com.example.transport.dto.CreateBookingDTO;
+import com.example.transport.exception.ObjectOptimisticLockingFailureException;
 import com.example.transport.mapper.BookingMapper;
 import com.example.transport.payload.PagedResponse;
 import com.example.transport.dto.UpdateBookingRequestDTO;
@@ -56,24 +57,16 @@ public class BookingServiceImpl implements BookingService {
         Trip trip = tripRepository.findById(request.getTripId())
                 .orElseThrow(() -> new ResourceNotFoundException("Trip not found"));
 
-        Integer bookedSeats = bookingRepository.sumSeatsByTrip(trip.getTripId());
-        int safeBookedSeats = (bookedSeats == null) ? 0 : bookedSeats;
+        int availableSeats = trip.getTotalNoOfPassengers() - trip.getBookedSeats();
 
-//        int availableSeats = trip.getTotalNoOfPassengers() - safeBookedSeats;
-//
-//        if (request.getNumberOfSeats() > availableSeats) {
-//            throw new RuntimeException("Not enough seats available");
-//        }
-
-        trip.setTotalNoOfPassengers(trip.getTotalNoOfPassengers()); // trigger version check
-        if (trip.getBookedSeats() + request.getNumberOfSeats() > trip.getTotalNoOfPassengers()) {
-            throw new RuntimeException("Not enough seats");
+        if (request.getNumberOfSeats() > availableSeats) {
+            throw new ObjectOptimisticLockingFailureException("Trip was booked by another user. Please try again.");
         }
 
+        // IMPORTANT
         trip.setBookedSeats(trip.getBookedSeats() + request.getNumberOfSeats());
 
-        BigDecimal totalPrice = trip.getPrice()
-                .multiply(BigDecimal.valueOf(request.getNumberOfSeats()));
+        BigDecimal totalPrice = trip.getPrice().multiply(BigDecimal.valueOf(request.getNumberOfSeats()));
 
         CustomerTrip booking = CustomerTrip.builder()
                 .customer(user)

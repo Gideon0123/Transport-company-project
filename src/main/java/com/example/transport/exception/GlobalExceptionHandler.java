@@ -4,6 +4,7 @@ import com.example.transport.payload.ApiResponse;
 import com.example.transport.util.TraceIdUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -80,6 +81,15 @@ public class GlobalExceptionHandler {
             ConflictException ex,
             HttpServletRequest request
     ) {
+        return buildResponse(ex.getMessage(), 409, request);
+    }
+
+    @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+    public ResponseEntity<ApiResponse<Object>> handleOptimisticLock(
+            ObjectOptimisticLockingFailureException ex,
+            HttpServletRequest request
+    ) {
+
         return buildResponse(ex.getMessage(), 409, request);
     }
 

@@ -50,8 +50,8 @@ public class Trip extends BaseEntity{
     @OneToMany(mappedBy = "trip", fetch = FetchType.LAZY)
     private List<CustomerTrip> customerTrips;
 
-    private int bookedSeats;
+    private int bookedSeats = 0;
 
-//    @Version
-//    private Long version;
+    @Version
+    private Long version;
 }
