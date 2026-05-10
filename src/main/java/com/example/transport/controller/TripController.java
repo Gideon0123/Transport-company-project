@@ -1,7 +1,6 @@
 package com.example.transport.controller;
 
 import com.example.transport.dto.*;
-import com.example.transport.enums.TripStatus;
 import com.example.transport.payload.ApiResponse;
 import com.example.transport.payload.PagedResponse;
 import com.example.transport.service.TripService;
@@ -232,11 +231,12 @@ public class TripController {
     @PatchMapping("/{id}/status")
     public ResponseEntity<ApiResponse<TripResponseDTO>> updateTripStatus(
             @PathVariable Long id,
-            @RequestParam TripStatus status,
+            @RequestBody @Valid UpdateTripStatusRequestDTO requestBody,
             HttpServletRequest request
     ) {
 
-        TripResponseDTO updatedTrip = tripService.updateTripStatus(id, status);
+        TripResponseDTO updatedTrip =
+                tripService.updateTripStatus(id, requestBody.getTripStatus());
 
         return ResponseEntity.ok(
                 ApiResponse.<TripResponseDTO>builder()
@@ -244,7 +244,6 @@ public class TripController {
                         .message("Trip status updated successfully")
                         .statusCode(200)
                         .data(updatedTrip)
-                        .errors(null)
                         .path(request.getRequestURI())
                         .traceId(TraceIdUtil.generate())
                         .timestamp(LocalDateTime.now())

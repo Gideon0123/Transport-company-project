@@ -3,6 +3,7 @@ package com.example.transport.service;
 import com.example.transport.dto.*;
 import com.example.transport.enums.TripStatus;
 import com.example.transport.enums.VehicleType;
+import com.example.transport.exception.InvalidStateException;
 import com.example.transport.exception.ResourceNotFoundException;
 import com.example.transport.mapper.TripMapper;
 import com.example.transport.model.Staff;
@@ -101,7 +102,7 @@ public class TripServiceImpl implements TripService{
                 .orElseThrow(() -> new ResourceNotFoundException("Trip not found"));
 
         if (existingTrip.getStatus() == TripStatus.ONGOING || existingTrip.getStatus() == TripStatus.COMPLETED) {
-            throw new RuntimeException("Cannot edit Trip once started or completed");
+            throw new InvalidStateException("Cannot edit Trip once started or completed!!");
         }
 
         if (dto.getPrice() != null) {
@@ -153,8 +154,11 @@ public class TripServiceImpl implements TripService{
         else if (current == TripStatus.PENDING && newStatus == TripStatus.CANCELLED) {
             trip.setStatus(newStatus);
         }
+        else if (current == null && newStatus == TripStatus.PENDING) {
+            trip.setStatus(newStatus);
+        }
         else {
-            throw new RuntimeException("Invalid status transition");
+            throw new InvalidStateException("Invalid status transition");
         }
 
         return TripMapper.toDTO(tripRepository.save(trip));

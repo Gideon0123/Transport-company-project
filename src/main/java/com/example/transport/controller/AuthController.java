@@ -7,6 +7,7 @@ import com.example.transport.util.CookieUtil;
 import com.example.transport.util.TraceIdUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -29,16 +30,12 @@ public class AuthController {
     //REGISTER
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<LoginResponseDTO>> register(
-            @RequestBody RegisterRequestDTO request,
+            @Valid @RequestBody RegisterRequestDTO request,
             HttpServletResponse response,
             HttpServletRequest httpRequest
     ) {
 
-//        AuthResponseDTO auth = service.register(request);
         LoginResponseDTO auth = service.register(request);
-
-//        CookieUtil.addAccessToken(response, auth.getAccessToken());
-//        CookieUtil.addRefreshToken(response, auth.getRefreshToken());
 
         CookieUtil.addAccessToken(
                 response,
@@ -175,7 +172,7 @@ public class AuthController {
     //FORGOT PASSWORD
     @PostMapping("/forgot-password")
     public ResponseEntity<ApiResponse<Object>> forgotPassword(
-            @RequestBody ForgotPasswordRequestDTO request,
+            @Valid @RequestBody ForgotPasswordRequestDTO request,
             HttpServletRequest httpRequest
     ) {
 
@@ -198,7 +195,7 @@ public class AuthController {
     //CHANGE PASSWORD
     @PutMapping("/change-password")
     public ResponseEntity<ApiResponse<Object>> changePassword(
-            @RequestBody ChangePasswordRequestDTO request,
+            @Valid @RequestBody ChangePasswordRequestDTO request,
             HttpServletRequest httpRequest
     ) {
 

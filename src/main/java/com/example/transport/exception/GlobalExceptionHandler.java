@@ -17,6 +17,15 @@ import java.util.List;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(InvalidStateException.class)
+    public ResponseEntity<ApiResponse<Object>> handleInvalidState(
+            InvalidStateException ex,
+            HttpServletRequest request
+    ) {
+
+        return buildResponse(ex.getMessage(), 400, request);
+    }
+
     @ExceptionHandler(UnauthorizedException.class)
     public ResponseEntity<ApiResponse<Object>> handleUnauthorizedRequest(
             ResourceNotFoundException ex,
