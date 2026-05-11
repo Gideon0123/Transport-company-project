@@ -323,8 +323,8 @@ cd Transport-company-project
 #### 2. Configure Database
 Update `application.properties` or `application.yml`:
 ```properties
-spring.datasource.url=jdbc:mysql://localhost:3306/transport_db
-spring.datasource.username=root
+spring.datasource.url=jdbc:mysql://localhost:3306/your_DB_URL
+spring.datasource.username=your_username
 spring.datasource.password=your_password
 spring.jpa.hibernate.ddl-auto=update
 spring.jpa.show-sql=false
@@ -344,8 +344,8 @@ spring.mail.properties.mail.smtp.starttls.required=true
 
 #### 4. Configure Redis (Optional)
 ```properties
-spring.redis.host=localhost
-spring.redis.port=6379
+spring.redis.host=your_redis_host
+spring.redis.port=your_redis_port
 spring.redis.password=
 ```
 
