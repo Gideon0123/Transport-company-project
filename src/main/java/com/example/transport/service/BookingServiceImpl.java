@@ -43,6 +43,104 @@ public class BookingServiceImpl implements BookingService {
     private final UserRepository userRepository;
     private final EmailService emailService;
 
+    private Specification<CustomerTrip> buildBookingSpecification(
+
+            String keyword,
+            Long bookingId,
+            BigDecimal totalPrice,
+            String status,
+
+            Long userId,
+            String firstName,
+            String lastName,
+            String email,
+            String phoneNo,
+
+            Long tripId,
+            LocalDate departureDateTime,
+            String departureLocation,
+            String destinationLocation,
+            BigDecimal price
+    ) {
+
+        Map<String, Object> filters = new HashMap<>();
+
+        if (bookingId != null) {
+            filters.put("bookingId", bookingId);
+        }
+
+        if (totalPrice != null) {
+            filters.put("totalPrice", totalPrice);
+        }
+
+        if (status != null && !status.isBlank()) {
+            try {
+                filters.put("status",
+                        BookingStatus.valueOf(status.toUpperCase()));
+            } catch (IllegalArgumentException ignored) {}
+        }
+
+        // Customer filters
+
+        if (userId != null) {
+            filters.put("customer.id", userId);
+        }
+
+        if (firstName != null && !firstName.isBlank()) {
+            filters.put("customer.firstName", firstName);
+        }
+
+        if (lastName != null && !lastName.isBlank()) {
+            filters.put("customer.lastName", lastName);
+        }
+
+        if (email != null && !email.isBlank()) {
+            filters.put("customer.email", email);
+        }
+
+        if (phoneNo != null && !phoneNo.isBlank()) {
+            filters.put("customer.phoneNo", phoneNo);
+        }
+
+        // Trip filters
+
+        if (tripId != null) {
+            filters.put("trip.tripId", tripId);
+        }
+
+        if (departureDateTime != null) {
+            filters.put("trip.departureDateTime", departureDateTime);
+        }
+
+        if (departureLocation != null && !departureLocation.isBlank()) {
+            filters.put("trip.departureLocation", departureLocation);
+        }
+
+        if (destinationLocation != null && !destinationLocation.isBlank()) {
+            filters.put("trip.destinationLocation", destinationLocation);
+        }
+
+        if (price != null) {
+            filters.put("trip.price", price);
+        }
+
+        Specification<CustomerTrip> spec =
+                new GenericSearchSpecification<CustomerTrip>()
+                        .build(filters);
+
+        if (keyword != null && keyword.length() >= 3) {
+
+            Specification<CustomerTrip> keywordSpec =
+                    BookingSearchSpecs.keywordSearch(keyword);
+
+            spec = (spec == null)
+                    ? keywordSpec
+                    : spec.and(keywordSpec);
+        }
+
+        return spec;
+    }
+
 
     @Override
     @Transactional
@@ -161,111 +259,108 @@ public class BookingServiceImpl implements BookingService {
         return BookingMapper.toDTO(updated);
     }
 
-    @Override
-    @Transactional
-    public Page<BookingResponseDTO> getMyBookings(String email, Pageable pageable) {
+@Override
+@Transactional
+public Page<BookingResponseDTO> getMyBookings(
 
-        Page<CustomerTrip> bookings =
-                bookingRepository.findByCustomerEmail(email, pageable);
+        String loggedInEmail,
 
-        return bookings.map(BookingMapper::toDTO);
-    }
+        String keyword,
+        Long bookingId,
+        BigDecimal totalPrice,
+        String status,
 
-    @Override
-    public Page<BookingResponseDTO> searchBookings(
-            String keyword,
-            Long bookingId,
-            BigDecimal totalPrice,
-            String status,
+        Long tripId,
+        LocalDate departureDateTime,
+        String departureLocation,
+        String destinationLocation,
+        BigDecimal price,
 
-            Long userId,
-            String firstName,
-            String lastName,
-            String email,
-            String phoneNo,
+        Pageable pageable
+) {
 
-            Long tripId,
-            LocalDate departureDateTime,
-            String departureLocation,
-            String destinationLocation,
-            BigDecimal price,
-            Pageable pageable
-    ) {
+    Specification<CustomerTrip> spec =
+            buildBookingSpecification(
+                    keyword,
+                    bookingId,
+                    totalPrice,
+                    status,
 
-        Map<String, Object> filters = new HashMap<>();
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
 
-        if (bookingId != null) {
-            filters.put("bookingId", bookingId);
-        }
+                    tripId,
+                    departureDateTime,
+                    departureLocation,
+                    destinationLocation,
+                    price
+            );
 
-        if (totalPrice != null) {
-            filters.put("totalPrice", totalPrice);
-        }
+    // VERY IMPORTANT:
+    // Restrict to current user only
+    Specification<CustomerTrip> myBookingsSpec =
+            (root, query, cb) ->
+                    cb.equal(
+                            root.get("customer").get("email"),
+                            loggedInEmail
+                    );
 
-        if (status != null && !status.isBlank()) {
-            try {
-                filters.put("status", BookingStatus.valueOf(status.toUpperCase()));
-            } catch (IllegalArgumentException ignored) {}
-        }
-        // customer search params
+    spec = (spec == null)
+            ? myBookingsSpec
+            : spec.and(myBookingsSpec);
 
-        if (userId != null) {
-            filters.put("customer.id", userId);
-        }
+    Page<CustomerTrip> bookings =
+            bookingRepository.findAll(spec, pageable);
 
-        if (firstName != null && !firstName.isBlank()) {
-            filters.put("customer.firstName", firstName);
-        }
+    return bookings.map(BookingMapper::toDTO);
+}
 
-        if (lastName != null && !lastName.isBlank()) {
-            filters.put("customer.lastName", lastName);
-        }
+@Override
+public Page<BookingResponseDTO> searchBookings(
+        String keyword,
+        Long bookingId,
+        BigDecimal totalPrice,
+        String status,
 
-        if (email != null && !email.isBlank()) {
-            filters.put("customer.email", email);
-        }
+        Long userId,
+        String firstName,
+        String lastName,
+        String email,
+        String phoneNo,
 
-        if (phoneNo != null && !phoneNo.isBlank()) {
-            filters.put("customer.phoneNo", phoneNo);
-        }
-        // Trip search params
+        Long tripId,
+        LocalDate departureDateTime,
+        String departureLocation,
+        String destinationLocation,
+        BigDecimal price,
+        Pageable pageable
+) {
 
-        if (tripId != null) {
-            filters.put("trip.id", tripId);
-        }
+    Specification<CustomerTrip> spec =
+            buildBookingSpecification(
+                    keyword,
+                    bookingId,
+                    totalPrice,
+                    status,
+                    userId,
+                    firstName,
+                    lastName,
+                    email,
+                    phoneNo,
+                    tripId,
+                    departureDateTime,
+                    departureLocation,
+                    destinationLocation,
+                    price
+            );
 
-        if (departureDateTime != null) {
-            filters.put("trip.departureDateTime", departureDateTime);
-        }
+    Page<CustomerTrip> bookingPage =
+            bookingRepository.findAll(spec, pageable);
 
-        if (departureLocation != null && !departureLocation.isBlank()) {
-            filters.put("trip.departureLocation", departureLocation);
-        }
-
-        if (destinationLocation != null && !destinationLocation.isBlank()) {
-            filters.put("trip.destinationLocation", destinationLocation);
-        }
-
-        if (price != null) {
-            filters.put("trip.price", price);
-        }
-
-        Specification<CustomerTrip> spec =
-                new GenericSearchSpecification<CustomerTrip>().build(filters);
-
-        if (keyword != null && keyword.length() >= 3) {
-            Specification<CustomerTrip> keywordSpec =
-                    BookingSearchSpecs.keywordSearch(keyword);
-
-            spec = (spec == null)
-                    ? keywordSpec
-                    : spec.and(keywordSpec);
-        }
-
-        Page<CustomerTrip> bookingPage =
-                bookingRepository.findAll(spec, pageable);
-
-        return bookingPage.map(BookingMapper::toDTO);
-    }
+    return bookingPage.map(BookingMapper::toDTO);
+}
 }
 

@@ -2,6 +2,8 @@ package com.example.transport.service;
 
 import com.example.transport.dto.*;
 import com.example.transport.enums.UserStatus;
+import com.example.transport.exception.AuthenticationException;
+import com.example.transport.exception.InvalidCredentialsException;
 import com.example.transport.exception.ResourceNotFoundException;
 import com.example.transport.mapper.UserMapper;
 import com.example.transport.model.User;
@@ -20,11 +22,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
-import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -76,18 +76,6 @@ public class UserServiceImpl implements UserService{
 
         if (dto.getPhoneNo() != null) {
             existingUser.setPhoneNo(dto.getPhoneNo());
-        }
-
-        if (dto.getUserType() != null) {
-            existingUser.setUserType(dto.getUserType());
-        }
-
-        if (dto.getUserStatus() != null ) {
-            existingUser.setStatus(dto.getUserStatus());
-        }
-
-        if (dto.getRoleType() != null) {
-            existingUser.setRoleType(dto.getRoleType());
         }
 
         return UserMapper.toDTO(userRepository.save(existingUser));
@@ -177,18 +165,15 @@ public class UserServiceImpl implements UserService{
     }
 
     @Override
-    public void changePassword(ChangePasswordRequestDTO request) {
+    public void changePassword(ChangePasswordRequestDTO request,UserDetails userDetails) {
 
-        String email = Objects.requireNonNull(SecurityContextHolder.getContext()
-                        .getAuthentication())
-                .getName();
-
+        String email = userDetails.getUsername();
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                .orElseThrow(() -> new AuthenticationException("User Not Logged In!!!"));
 
         //check old password
         if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
-            throw new RuntimeException("Old password is incorrect");
+            throw new InvalidCredentialsException("Old password is incorrect");
         }
 
         //set new password

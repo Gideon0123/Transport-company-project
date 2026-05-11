@@ -134,29 +134,68 @@ public class BookingController {
 
     @GetMapping("/my")
     public ResponseEntity<ApiResponse<PagedResponse<BookingResponseDTO>>> getMyBookings(
+
             @AuthenticationPrincipal UserDetails userDetails,
+
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long bookingId,
+            @RequestParam(required = false) BigDecimal totalPrice,
+            @RequestParam(required = false) String status,
+
+            @RequestParam(required = false) Long tripId,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate departureDateTime,
+
+            @RequestParam(required = false) String departureLocation,
+            @RequestParam(required = false) String destinationLocation,
+            @RequestParam(required = false) BigDecimal price,
 
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "5") int size,
             @RequestParam(defaultValue = "bookingId") String sortBy,
+
             HttpServletRequest request
     ) {
-        String email = userDetails.getUsername();
-        //Convert to Spring format (0-based)
-        int adjustedPage = Math.max(page - 1, 0);
-        Pageable pageable = PageRequest.of(adjustedPage, size, Sort.by(sortBy));
-        Page<BookingResponseDTO> bookings =
-                bookingService.getMyBookings(email, pageable);
 
-        PagedResponse<BookingResponseDTO> response = PagedResponse.<BookingResponseDTO>builder()
-                .content(bookings.getContent())
-                .page(bookings.getNumber() + 1)
-                .size(bookings.getSize())
-                .totalElements(bookings.getTotalElements())
-                .totalPages(bookings.getTotalPages())
-                .first(bookings.isFirst())
-                .last(bookings.isLast())
-                .build();
+        String email = userDetails.getUsername();
+
+        int adjustedPage = Math.max(page - 1, 0);
+
+        Pageable pageable = PageRequest.of(
+                adjustedPage,
+                size,
+                Sort.by(sortBy)
+        );
+
+        Page<BookingResponseDTO> bookings =
+                bookingService.getMyBookings(
+                        email,
+
+                        keyword,
+                        bookingId,
+                        totalPrice,
+                        status,
+
+                        tripId,
+                        departureDateTime,
+                        departureLocation,
+                        destinationLocation,
+                        price,
+
+                        pageable
+                );
+
+        PagedResponse<BookingResponseDTO> response =
+                PagedResponse.<BookingResponseDTO>builder()
+                        .content(bookings.getContent())
+                        .page(bookings.getNumber() + 1)
+                        .size(bookings.getSize())
+                        .totalElements(bookings.getTotalElements())
+                        .totalPages(bookings.getTotalPages())
+                        .first(bookings.isFirst())
+                        .last(bookings.isLast())
+                        .build();
 
         return ResponseEntity.ok(
                 ApiResponse.<PagedResponse<BookingResponseDTO>>builder()
@@ -164,7 +203,6 @@ public class BookingController {
                         .message("User bookings fetched successfully")
                         .statusCode(200)
                         .data(response)
-                        .errors(null)
                         .path(request.getRequestURI())
                         .traceId(TraceIdUtil.generate())
                         .timestamp(LocalDateTime.now())
@@ -194,6 +232,7 @@ public class BookingController {
         );
     }
 
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
     @GetMapping("/search")
     public ResponseEntity<ApiResponse<PagedResponse<BookingResponseDTO>>> searchBookings(
             @RequestParam(required = false) String keyword,

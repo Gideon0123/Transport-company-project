@@ -11,5 +11,4 @@ public class UpdateVehicleRequestDTO {
     private VehicleStatus vehicleStatus;
     private Long driverId;
 
-
 }

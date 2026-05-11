@@ -4,6 +4,7 @@ import com.example.transport.dto.*;
 import com.example.transport.payload.PagedResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.userdetails.UserDetails;
 
 public interface UserService {
 
@@ -22,5 +23,8 @@ public interface UserService {
                                      String roleType,
                                      Pageable pageable);
     UserResponseDTO getCurrentUser(String email);
-    void changePassword(ChangePasswordRequestDTO request);
+    void changePassword(
+            ChangePasswordRequestDTO request,
+            UserDetails userDetails
+    );
 }

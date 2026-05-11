@@ -17,7 +17,22 @@ public interface BookingService {
     void cancelBooking(Long id);
     BookingResponseDTO getBooking(Long id);
     PagedResponse<BookingResponseDTO> getPagedBookings(int page, int size, String sortBy);
-    Page<BookingResponseDTO> getMyBookings(String email, Pageable pageable);
+    Page<BookingResponseDTO> getMyBookings(
+        String loggedInEmail,
+
+        String keyword,
+        Long bookingId,
+        BigDecimal totalPrice,
+        String status,
+
+        Long tripId,
+        LocalDate departureDateTime,
+        String departureLocation,
+        String destinationLocation,
+        BigDecimal price,
+
+        Pageable pageable
+    );
     BookingResponseDTO updateBooking(Long bookingId, UpdateBookingRequestDTO request);
     Page<BookingResponseDTO> searchBookings(
         String keyword,

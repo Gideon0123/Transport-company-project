@@ -85,7 +85,7 @@ public class UserController {
     }
 
     //UPDATE USER
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
+//    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_MANAGER')")
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<UserResponseDTO>> updateUser(
             @PathVariable Long id,
@@ -113,7 +113,7 @@ public class UserController {
             @PathVariable Long id,
             HttpServletRequest request
     ) {
-
+//        CookieUtil.clearCookies(response);
         userService.deleteUser(id);
 
         return ResponseEntity.ok(

@@ -193,13 +193,14 @@ public class AuthController {
     }
 
     //CHANGE PASSWORD
-    @PutMapping("/change-password")
+    @PostMapping("/change-password")
     public ResponseEntity<ApiResponse<Object>> changePassword(
+            @AuthenticationPrincipal UserDetails userDetails,
             @Valid @RequestBody ChangePasswordRequestDTO request,
             HttpServletRequest httpRequest
     ) {
 
-        userService.changePassword(request);
+        userService.changePassword(request, userDetails);
 
         return ResponseEntity.ok(
                 ApiResponse.builder()

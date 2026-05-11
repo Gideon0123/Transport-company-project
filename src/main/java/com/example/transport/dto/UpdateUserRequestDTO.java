@@ -2,7 +2,6 @@ package com.example.transport.dto;
 
 import com.example.transport.enums.RoleType;
 import com.example.transport.enums.UserStatus;
-import com.example.transport.enums.UserType;
 import lombok.Data;
 
 @Data
@@ -13,7 +12,6 @@ public class UpdateUserRequestDTO {
     private String email;
     private String phoneNo;
     private RoleType roleType;
-    private UserType userType;
     private UserStatus userStatus;
 
 }

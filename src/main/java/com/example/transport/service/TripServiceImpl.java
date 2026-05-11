@@ -168,7 +168,7 @@ public class TripServiceImpl implements TripService{
     @CacheEvict(value = CacheKeys.TRIP, allEntries = true)
     public void deleteTrip(Long id) {
         Trip trip = tripRepository.findById(id)
-                        .orElseThrow(() -> new RuntimeException("Trip not found"));
+                        .orElseThrow(() -> new ResourceNotFoundException("Trip not found"));
 
         trip.setDeleted(true);
         trip.setStatus(TripStatus.CANCELLED);

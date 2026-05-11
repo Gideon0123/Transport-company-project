@@ -4,6 +4,7 @@ import com.example.transport.dto.*;
 import com.example.transport.enums.RoleType;
 import com.example.transport.enums.VehicleStatus;
 import com.example.transport.enums.VehicleType;
+import com.example.transport.exception.BadRequestException;
 import com.example.transport.exception.ResourceNotFoundException;
 import com.example.transport.mapper.VehicleMapper;
 import com.example.transport.model.Staff;
@@ -44,21 +45,25 @@ public class VehicleServiceImpl implements VehicleService{
     @CacheEvict(value = CacheKeys.VEHICLE, allEntries = true)
     public VehicleResponseDTO createVehicle(CreateVehicleRequestDTO dto) {
 
+        if (dto.getVehiclePlate() == null) {
+            throw new BadRequestException("Cannot Register Vehicle without Plate Number");
+        } else if (dto.getVehicleType() == null) {
+            throw new BadRequestException("Please Select a Vehicle Type");
+        }
+
         if (vehicleRepository.existsByVehiclePlate(dto.getVehiclePlate())) {
-            throw new RuntimeException("Vehicle plate already exists");
+            throw new BadRequestException("Vehicle plate already exists");
         }
 
         Vehicle vehicle = new Vehicle();
         vehicle.setVehiclePlate(dto.getVehiclePlate());
 
         if (vehicle.isDeleted()) {
-            throw new RuntimeException("Cannot assign deleted vehicle");
+            throw new BadRequestException("Cannot assign deleted vehicle");
         }
 
-        if (dto.getVehicleType() != null) {
-            vehicle.setVehicleType(
-                    VehicleType.valueOf(dto.getVehicleType().toUpperCase()));
-        }
+        vehicle.setVehicleType(
+                VehicleType.valueOf(dto.getVehicleType().toUpperCase()));
 
         if (dto.getDriverId() != null) {
 
@@ -68,11 +73,11 @@ public class VehicleServiceImpl implements VehicleService{
             boolean driverAlreadyAssigned = vehicleRepository.existsByDriver(driver);
 
             if (driverAlreadyAssigned) {
-                throw new RuntimeException("Driver already assigned to another vehicle");
+                throw new BadRequestException("Driver already assigned to another vehicle");
             }
 
             if (driver.getRoleType() != RoleType.DRIVER) {
-                throw new RuntimeException("Assigned staff is not a DRIVER");
+                throw new BadRequestException("Assigned staff is not a DRIVER");
             }
 
             vehicle.setDriver(driver);
@@ -108,6 +113,11 @@ public class VehicleServiceImpl implements VehicleService{
     @CacheEvict(value = CacheKeys.VEHICLE, allEntries = true)
     public VehicleResponseDTO updateVehicle(Long id, UpdateVehicleRequestDTO dto) {
 
+        VehicleStatus current = dto.getVehicleStatus();
+        if (current == VehicleStatus.DELETED) {
+            throw new BadRequestException("Cannot Update a Deleted Vehicle");
+        }
+
         Vehicle existingVehicle = vehicleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found"));
 
@@ -120,7 +130,7 @@ public class VehicleServiceImpl implements VehicleService{
         }
 
         if (dto.getVehicleStatus() != null) {
-            existingVehicle.setStatus(dto.getVehicleStatus());
+            existingVehicle.setStatus(VehicleStatus.valueOf(String.valueOf(dto.getVehicleStatus())));
         }
 
         if (dto.getDriverId() != null) {
@@ -141,7 +151,7 @@ public class VehicleServiceImpl implements VehicleService{
     public void deleteVehicle(Long id) {
 
         Vehicle vehicle = vehicleRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Vehicle not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found"));
 
         //Check ACTIVE trips (future trips)
         boolean hasActiveTrips = tripRepository
@@ -155,7 +165,7 @@ public class VehicleServiceImpl implements VehicleService{
         vehicle.setDeleted(true);
         vehicle.setStatus(VehicleStatus.DELETED);
 
-        vehicleRepository.save(vehicle);
+        vehicleRepository.deleteById(id);
     }
 
     @Override

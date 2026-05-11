@@ -69,6 +69,7 @@ public class StaffServiceImpl implements StaffService{
                 .bankName(dto.getBankName())
                 .bankAccountNo(dto.getBankAccountNo())
                 .salary(dto.getSalary())
+                .status(UserStatus.ACTIVE)
                 .build();
 
         user.setStaff(staff);
@@ -285,10 +286,11 @@ public class StaffServiceImpl implements StaffService{
     @Override
     public Page<StaffResponseDTO> getDrivers(int page, int size, String sortBy) {
 
-        List<String> allowed = List.of("staffId", "nin");
+        List<String> allowed = List.of("staffId", "nin", "salary", "bankName", "firstName", "lastName",
+                "email", "phoneNo", "bankAccountNo", "userId");
 
         if (!allowed.contains(sortBy)) {
-            throw new BadRequestException("Invalid sort field");
+            throw new BadRequestException("Invalid sort field!!");
         }
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy));
@@ -299,10 +301,11 @@ public class StaffServiceImpl implements StaffService{
     @Override
     public Page<StaffResponseDTO> getTicketers(int page, int size, String sortBy) {
 
-        List<String> allowed = List.of("staffId", "nin");
+        List<String> allowed = List.of("staffId", "nin", "salary", "bankName", "firstName", "lastName",
+                "email", "phoneNo", "bankAccountNo", "userId");
 
         if (!allowed.contains(sortBy)) {
-            throw new BadRequestException("Invalid sort field");
+            throw new BadRequestException("Invalid sort field!!");
         }
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy));
@@ -313,10 +316,11 @@ public class StaffServiceImpl implements StaffService{
     @Override
     public Page<StaffResponseDTO> getManagers(int page, int size, String sortBy) {
 
-        List<String> allowed = List.of("staffId", "nin");
+        List<String> allowed = List.of("staffId", "nin", "salary", "bankName", "firstName", "lastName",
+                "email", "phoneNo", "bankAccountNo", "userId");
 
         if (!allowed.contains(sortBy)) {
-            throw new BadRequestException("Invalid sort field");
+            throw new BadRequestException("Invalid sort field!!");
         }
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy));
@@ -327,10 +331,11 @@ public class StaffServiceImpl implements StaffService{
     @Override
     public Page<StaffResponseDTO> getAdmins(int page, int size, String sortBy) {
 
-        List<String> allowed = List.of("staffId", "nin");
+        List<String> allowed = List.of("staffId", "nin", "salary", "bankName", "firstName", "lastName",
+                "email", "phoneNo", "bankAccountNo", "userId");
 
         if (!allowed.contains(sortBy)) {
-            throw new BadRequestException("Invalid sort field");
+            throw new BadRequestException("Invalid sort field!!");
         }
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy));
