@@ -1,5 +1,6 @@
 package com.example.transport.service;
 
+import com.example.transport.dto.events.BookingCreatedEvent;
 import com.example.transport.dto.BookingResponseDTO;
 import com.example.transport.dto.CreateBookingDTO;
 import com.example.transport.exception.ObjectOptimisticLockingFailureException;
@@ -11,6 +12,7 @@ import com.example.transport.exception.ResourceNotFoundException;
 import com.example.transport.model.CustomerTrip;
 import com.example.transport.model.Trip;
 import com.example.transport.model.User;
+import com.example.transport.rabbitmq.BookingEventProducer;
 import com.example.transport.repository.CustomerTripRepository;
 import com.example.transport.repository.TripRepository;
 import com.example.transport.repository.UserRepository;
@@ -41,7 +43,7 @@ public class BookingServiceImpl implements BookingService {
     private final CustomerTripRepository bookingRepository;
     private final TripRepository tripRepository;
     private final UserRepository userRepository;
-    private final EmailService emailService;
+    private final BookingEventProducer bookingEventProducer;
 
     private Specification<CustomerTrip> buildBookingSpecification(
 
@@ -177,7 +179,22 @@ public class BookingServiceImpl implements BookingService {
         CustomerTrip savedBooking = bookingRepository.save(booking);
 
         try {
-            emailService.sendCreatedBooking(savedBooking);
+            BookingCreatedEvent event = BookingCreatedEvent.builder()
+                    .email(savedBooking.getCustomer().getEmail())
+                    .customerName(
+                            savedBooking.getCustomer().getFirstName()
+                                    + " "
+                                    + savedBooking.getCustomer().getLastName()
+                    )
+                    .departureLocation(savedBooking.getTrip().getDepartureLocation())
+                    .destinationLocation(savedBooking.getTrip().getDestinationLocation())
+                    .departureTime(savedBooking.getTrip().getDepartureDateTime())
+                    .seats(savedBooking.getNumberOfSeats())
+                    .price(savedBooking.getTrip().getPrice())
+                    .totalPrice(savedBooking.getTotalPrice())
+                    .build();
+
+            bookingEventProducer.sendBookingCreatedEvent(event);
         } catch (Exception e) {
             System.err.println("Email failed: " + e.getMessage());
         }

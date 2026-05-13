@@ -6,6 +6,4 @@ import com.example.transport.model.User;
 public interface EmailService {
 
     void sendVerificationEmail(String to, String code);
-    void sendCreatedBooking(CustomerTrip booking);
-    void customerSignupMail(User user);
 }

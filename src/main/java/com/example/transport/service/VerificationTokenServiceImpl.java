@@ -23,10 +23,10 @@ import java.util.Random;
 @RequiredArgsConstructor
 public class VerificationTokenServiceImpl implements VerificationTokenService{
 
-    private final VerificationTokenRepository tokenRepository;
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
+    private final VerificationTokenRepository tokenRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final UserRepository userRepository;
     private final RedisService redisService;
 
     public User getUserByEmailOrPhone(String email, String phone) {

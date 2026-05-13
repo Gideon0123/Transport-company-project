@@ -1,6 +1,7 @@
 package com.example.transport.service;
 
 import com.example.transport.dto.*;
+import com.example.transport.dto.events.CustomerSignupEvent;
 import com.example.transport.enums.UserStatus;
 import com.example.transport.enums.UserType;
 import com.example.transport.exception.AuthenticationException;
@@ -8,6 +9,7 @@ import com.example.transport.exception.BadRequestException;
 import com.example.transport.exception.InvalidCredentialsException;
 import com.example.transport.model.RefreshToken;
 import com.example.transport.model.User;
+import com.example.transport.rabbitmq.CustomerSignupProducer;
 import com.example.transport.repository.UserRepository;
 import com.example.transport.util.CacheKeys;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +26,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final RefreshTokenService refreshTokenService;
-    private final EmailService emailService;
+    private final CustomerSignupProducer customerSignupProducer;
 
     @CacheEvict(value = CacheKeys.USER, allEntries = true)
     public LoginResponseDTO register(RegisterRequestDTO request) {
@@ -59,9 +61,16 @@ public class AuthService {
                 .roleType(user.getRoleType())
                 .build();
         try {
-            emailService.customerSignupMail(user);
+            CustomerSignupEvent event =
+                    CustomerSignupEvent.builder()
+                            .email(user.getEmail())
+                            .firstName(user.getFirstName())
+                            .lastName(user.getLastName())
+                            .build();
+
+            customerSignupProducer.sendSignupEvent(event);
         } catch (Exception e) {
-            System.err.println("Email failed: " + e.getMessage());
+            System.err.println("Email failed to send: " + e.getMessage());
         }
 
         return LoginResponseDTO.builder()
