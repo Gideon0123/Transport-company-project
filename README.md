@@ -566,9 +566,9 @@ server.servlet.context-path=/
 spring.application.name=transport
 
 # Database
-spring.datasource.url=jdbc:mysql://localhost:3306/transport_db
-spring.datasource.username=root
-spring.datasource.password=password
+spring.datasource.url=jdbc:mysql://DataBase_URL
+spring.datasource.username=DataBase_username
+spring.datasource.password=DataBase_password
 spring.jpa.hibernate.ddl-auto=update
 spring.jpa.show-sql=false
 spring.jpa.open-in-view=false
@@ -597,16 +597,6 @@ spring.task.scheduling.pool.size=1
 
 ---
 
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit changes (`git commit -m 'Add AmazingFeature'`)
-4. Push to branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
----
-
 ## 📄 License
 
 This project is open source and available under the MIT License.
@@ -622,19 +612,6 @@ This project is open source and available under the MIT License.
 ## 📞 Support
 
 For support, email support@transportcompany.com or open an issue on GitHub.
-
----
-
-## 🗺 Roadmap
-
-- [ ] Payment integration (Stripe, PayPal)
-- [ ] SMS notifications
-- [ ] Real-time GPS tracking
-- [ ] Mobile app (Android/iOS)
-- [ ] Advanced analytics dashboard
-- [ ] Multi-language support
-- [ ] Two-factor authentication
-- [ ] WebSocket support for live updates
 
 ---
 
