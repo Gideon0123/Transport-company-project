@@ -1,6 +1,6 @@
 # Transport Company Management System
 
-A comprehensive Spring Boot-based REST API for managing a transport company's operations, including vehicle management, trip scheduling, staff management, booking system, and user authentication.
+A comprehensive Spring Boot-based distributed REST API for managing a transport company's operations, including vehicle management, trip scheduling, staff management, booking system, and user authentication. This system follows a microservices architecture with dedicated services for email handling via RabbitMQ.
 
 ---
 
@@ -23,7 +23,9 @@ A comprehensive Spring Boot-based REST API for managing a transport company's op
 
 ## 🎯 Overview
 
-Transport Company Management System is a full-featured backend API designed to streamline transport company operations. It provides endpoints for managing vehicles, scheduling trips, booking seats, managing staff, and authenticating users. The system supports role-based access control with multiple user types (ADMIN, MANAGER, DRIVER, TICKETER) and implements JWT-based authentication with refresh token rotation.
+Transport Company Management System is a full-featured backend distributed API designed to streamline transport company operations. It provides endpoints for managing vehicles, scheduling trips, booking seats, staff coordination, and secure user authentication. 
+
+**Note**: This is now a **distributed system** with a separate **Email Service microservice** (`@Gideon0123/Transport-company-email-service`) handling all email operations via RabbitMQ messaging.
 
 ---
 
@@ -43,15 +45,15 @@ transport-company-project/
         │   ├── RedisConfig.java             # Redis configuration
         │   ├── SecurityConfig.java          # Spring Security setup
         │   ├── JwtAuthenticationFilter.java  # JWT authentication filter
-        │   └── CorsConfig.java              # CORS configuration
+        │   ├── CorsConfig.java              # CORS configuration
+        │   └── RabbitMQConfig.java          # RabbitMQ configuration
         ├── controller/                      # REST API controllers
         │   ├── AuthController.java          # Authentication endpoints
         │   ├── UserController.java          # User management
         │   ├── TripController.java          # Trip management
         │   ├── BookingController.java       # Booking management
         │   ├── VehicleController.java       # Vehicle management
-        │   ├── StaffController.java         # Staff management
-        │   └── VerificationController.java  # Email/SMS verification
+        │   └── StaffController.java         # Staff management
         ├── service/                         # Business logic layer
         │   ├── AuthService.java             # Authentication logic
         │   ├── UserService.java             # User operations
@@ -61,8 +63,8 @@ transport-company-project/
         │   ├── StaffService.java            # Staff operations
         │   ├── JwtService.java              # JWT token management
         │   ├── VerificationTokenService.java# Token verification
-        │   ├── EmailService.java            # Email operations
         │   ├── RefreshTokenService.java     # Refresh token management
+        │   ├── RabbitMQPublisher.java       # RabbitMQ message publisher
         │   └── CustomUserDetailsService.java# Custom user details provider
         ├── repository/                      # Data access layer (DAL)
         │   ├── UserRepository.java          # User data operations
@@ -97,9 +99,7 @@ transport-company-project/
         │   ├── CreateVehicleRequestDTO.java # Create vehicle request DTO
         │   ├── StaffResponseDTO.java        # Staff response DTO
         │   ├── StaffSummaryDTO.java         # Staff summary DTO
-        │   ├── CreateStaffRequestDTO.java   # Create staff request DTO
-        │   ├── VerifyCodeRequestDTO.java    # Verification code DTO
-        │   └── SendCodeRequestDTO.java      # Send code request DTO
+        │   └── CreateStaffRequestDTO.java   # Create staff request DTO
         ├── enums/                           # Enumeration types
         │   ├── RoleType.java                # User role types (ADMIN, MANAGER, DRIVER, TICKETER)
         │   ├── UserType.java                # User types
@@ -133,10 +133,10 @@ transport-company-project/
 - **Spring Data JPA** - ORM for database operations
 - **Spring Security** - Authentication and authorization
 - **Spring Web** - REST API development
-- **Spring Mail** - Email sending functionality
 - **Spring Retry** `2.0.12` - Retry mechanism for failed operations
 - **Spring AOP** `4.0.0-M2` - Aspect-oriented programming
 - **Spring Data Redis** - Redis integration for caching
+- **Spring AMQP** - RabbitMQ integration for message queuing
 
 ### Authentication & Authorization
 - **JWT (JSON Web Tokens)** `0.11.5` (jjwt-api, jjwt-impl, jjwt-jackson)
@@ -152,6 +152,9 @@ transport-company-project/
 - **Redis** - Distributed cache and session management
 - **Bucket4j** `8.10.1` - Token bucket algorithm for rate limiting
 - **Bucket4j Redis** `8.10.1` - Redis integration for distributed rate limiting
+
+### Messaging
+- **RabbitMQ** - Message broker for distributed communication
 
 ### Data Validation & Mapping
 - **Jakarta Bean Validation** - Input validation
@@ -176,11 +179,10 @@ transport-company-project/
 ## ✨ Key Features
 
 ### 🔐 Authentication & Authorization
-- **User Registration** - Sign up with email verification
+- **User Registration** - Sign up with secure credentials
 - **User Login** - Secure login with JWT tokens
 - **JWT Token Management** - Access and refresh tokens with cookie-based storage
 - **Role-Based Access Control (RBAC)** - Multiple roles (ADMIN, MANAGER, DRIVER, TICKETER)
-- **Email Verification** - Verify user email during signup
 - **OAuth 2.0 Integration** - Third-party authentication support
 - **Token Refresh** - Automatic token rotation with refresh tokens
 - **Logout** - Secure session termination with cookie clearing
@@ -218,7 +220,6 @@ transport-company-project/
 - **Booking Cancellation** - Cancel bookings with status updates
 - **Booking History** - Maintain booking records
 - **Customer Bookings** - Retrieve bookings per customer
-- **Booking Notifications** - Email notifications for bookings
 
 ### 👨‍💼 Staff Management
 - **Create Staff** - Register employees with role assignments
@@ -230,18 +231,19 @@ transport-company-project/
 - **Staff Pagination** - Manage large staff lists
 
 ### 📧 Email & Notifications
-- **Email Verification** - Send verification codes
-- **Booking Confirmations** - Email booking details
-- **Customer Sign-up Notifications** - Welcome emails
-- **Async Email Sending** - Non-blocking email operations
-- **JavaMail Integration** - Standard email functionality
+- **Email Verification** - Handled by email-service microservice
+- **Booking Confirmations** - Handled by email-service microservice
+- **Customer Sign-up Notifications** - Handled by email-service microservice
+- **RabbitMQ Integration** - Asynchronous message-based communication
+
+For all email-related operations, see [@Gideon0123/Transport-company-email-service](https://github.com/Gideon0123/Transport-company-email-service)
 
 ### ⚡ Performance & Scalability
 - **Redis Caching** - Distributed caching layer
 - **Rate Limiting** - API rate limiting with Bucket4j
 - **Pagination** - Handle large datasets efficiently
 - **Entity Graphs** - Optimized lazy loading
-- **Async Processing** - Asynchronous task execution
+- **Async Processing** - Asynchronous task execution via RabbitMQ
 - **Retry Mechanism** - Automatic retry for failed operations
 - **Connection Pooling** - Efficient database connections
 
@@ -263,17 +265,42 @@ transport-company-project/
 
 ## 🏗 Architecture
 
-### Layered Architecture
+### Distributed Microservices Architecture
 ```
-┌─────────────────────────────────────┐
-│   REST Controllers (HTTP Layer)     │
-├─────────────────────────────────────┤
-│   Service Layer (Business Logic)    │
-├─────────────────────────────────────┤
-│   Repository Layer (Data Access)    │
-├─────────────────────────────────────┤
-│   Database (MySQL)                  │
-└─────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│                      Client Layer                            │
+└──────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌──────────────────────────────────────────────────────────────┐
+│         Transport Company API (This Service)                 │
+│   ┌────────────────────────────────────────────────────┐    │
+│   │   REST Controllers (HTTP Layer)                    │    │
+│   ├────────────────────────────────────────────────────┤    │
+│   │   Service Layer (Business Logic)                   │    │
+│   ├────────────────────────────────────────────────────┤    │
+│   │   Repository Layer (Data Access)                   │    │
+│   ├────────────────────────────────────────────────────┤    │
+│   │   MySQL Database                                   │    │
+│   └────────────────────────────────────────────────────┘    │
+└──────────────────────────────────────────────────────────────┘
+                            │
+                            ▼ (RabbitMQ)
+                 ┌──────────────────────┐
+                 │   RabbitMQ Broker    │
+                 └──────────────────────┘
+                            │
+                            ▼
+┌──────────────────────────────────────────────────────────────┐
+│      Email Service Microservice (Separate Project)           │
+│   ┌────────────────────────────────────────────────────┐    │
+│   │   Email Processing & Notifications                │    │
+│   │   - Email Verification                            │    │
+│   │   - Booking Confirmations                         │    │
+│   │   - Customer Notifications                        │    │
+│   │   - SMTP Integration                              │    │
+│   └────────────────────────────────────────────────────┘    │
+└──────────────────────────────────────────────────────────────┘
 ```
 
 ### Components
@@ -283,12 +310,13 @@ transport-company-project/
 - Request validation
 - Authorization checks
 - Response formatting
+- Publishes events to RabbitMQ for email operations
 
 **Service Layer**
 - Business logic implementation
 - Transaction management
-- Email notifications
 - JWT token operations
+- RabbitMQ message publishing for email events
 
 **Repository Layer**
 - Database operations
@@ -302,6 +330,11 @@ transport-company-project/
 - Cookie-based token storage
 - OAuth 2.0 integration
 
+**Messaging Layer**
+- RabbitMQ publisher for email events
+- Asynchronous event-driven communication
+- Decoupled from email service operations
+
 ---
 
 ## 🚀 Getting Started
@@ -311,6 +344,7 @@ transport-company-project/
 - **Maven 3.6+** or use included `mvnw`
 - **MySQL 8.0+**
 - **Redis** (optional, for caching and rate limiting)
+- **RabbitMQ** (required for distributed email service)
 
 ### Installation & Setup
 
@@ -331,15 +365,12 @@ spring.jpa.show-sql=false
 spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQL8Dialect
 ```
 
-#### 3. Configure Email (Optional)
+#### 3. Configure RabbitMQ
 ```properties
-spring.mail.host=smtp.gmail.com
-spring.mail.port=587
-spring.mail.username=your_email@gmail.com
-spring.mail.password=your_app_password
-spring.mail.properties.mail.smtp.auth=true
-spring.mail.properties.mail.smtp.starttls.enable=true
-spring.mail.properties.mail.smtp.starttls.required=true
+spring.rabbitmq.host=localhost
+spring.rabbitmq.port=5672
+spring.rabbitmq.username=guest
+spring.rabbitmq.password=guest
 ```
 
 #### 4. Configure Redis (Optional)
@@ -364,6 +395,14 @@ java -jar target/transport-0.0.1-SNAPSHOT.jar
 ```
 
 Application will start on `http://localhost:8080`
+
+#### 7. Setup Email Service (Separate Project)
+For email functionality, you must also set up the separate email service:
+```bash
+git clone https://github.com/Gideon0123/Transport-company-email-service.git
+cd Transport-company-email-service
+# Follow the README instructions in that repository
+```
 
 ---
 
@@ -527,9 +566,9 @@ server.servlet.context-path=/
 spring.application.name=transport
 
 # Database
-spring.datasource.url=jdbc:mysql://localhost:3306/transport_db
-spring.datasource.username=root
-spring.datasource.password=password
+spring.datasource.url=jdbc:mysql://DataBase_URL
+spring.datasource.username=DataBase_username
+spring.datasource.password=DataBase_password
 spring.jpa.hibernate.ddl-auto=update
 spring.jpa.show-sql=false
 spring.jpa.open-in-view=false
@@ -538,11 +577,11 @@ spring.jpa.open-in-view=false
 spring.redis.host=localhost
 spring.redis.port=6379
 
-# Mail
-spring.mail.host=smtp.gmail.com
-spring.mail.port=587
-spring.mail.username=email@gmail.com
-spring.mail.password=app_password
+# RabbitMQ
+spring.rabbitmq.host=localhost
+spring.rabbitmq.port=5672
+spring.rabbitmq.username=guest
+spring.rabbitmq.password=guest
 
 # JWT
 jwt.secret=your_secret_key
@@ -555,16 +594,6 @@ spring.task.execution.pool.max-size=5
 # Scheduling
 spring.task.scheduling.pool.size=1
 ```
-
----
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit changes (`git commit -m 'Add AmazingFeature'`)
-4. Push to branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
 
 ---
 
@@ -586,19 +615,6 @@ For support, email support@transportcompany.com or open an issue on GitHub.
 
 ---
 
-## 🗺 Roadmap
-
-- [ ] Payment integration (Stripe, PayPal)
-- [ ] SMS notifications
-- [ ] Real-time GPS tracking
-- [ ] Mobile app (Android/iOS)
-- [ ] Advanced analytics dashboard
-- [ ] Multi-language support
-- [ ] Two-factor authentication
-- [ ] WebSocket support for live updates
-
----
-
 ## 📚 Additional Resources
 
 - [Spring Boot Documentation](https://spring.io/projects/spring-boot)
@@ -606,7 +622,9 @@ For support, email support@transportcompany.com or open an issue on GitHub.
 - [JWT Tutorial](https://jwt.io/)
 - [MySQL Documentation](https://dev.mysql.com/doc/)
 - [Redis Documentation](https://redis.io/documentation)
+- [RabbitMQ Documentation](https://www.rabbitmq.com/documentation.html)
 - [MapStruct Guide](https://mapstruct.org/)
+- [Email Service Project](https://github.com/Gideon0123/Transport-company-email-service)
 
 ---
 
@@ -614,3 +632,4 @@ For support, email support@transportcompany.com or open an issue on GitHub.
 **Version**: 0.0.1-SNAPSHOT
 **Java Version**: 21
 **Build Tool**: Maven
+**Architecture**: Distributed Microservices with RabbitMQ
