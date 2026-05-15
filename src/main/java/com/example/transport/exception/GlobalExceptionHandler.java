@@ -57,7 +57,7 @@ public class GlobalExceptionHandler {
             HttpServletRequest request
     ) {
 
-        return buildResponse(ex.getMessage(), 403, request);
+        return buildResponse(ex.getMessage(), 400, request);
     }
 
     @ExceptionHandler(AccessDeniedException.class)

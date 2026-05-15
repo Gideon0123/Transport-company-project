@@ -2,11 +2,15 @@ package com.example.transport.controller;
 
 import com.example.transport.dto.BookingResponseDTO;
 import com.example.transport.dto.CreateBookingDTO;
+import com.example.transport.dto.IdempotencyRecord;
 import com.example.transport.payload.ApiResponse;
 import com.example.transport.payload.PagedResponse;
 import com.example.transport.dto.UpdateBookingRequestDTO;
 import com.example.transport.service.BookingService;
+import com.example.transport.service.IdempotencyService;
 import com.example.transport.util.TraceIdUtil;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -33,18 +37,79 @@ import java.time.LocalDateTime;
 public class BookingController {
 
     private final BookingService bookingService;
+    private final IdempotencyService idempotencyService;
+    private final ObjectMapper objectMapper;
+
+//    @PostMapping
+//    public ResponseEntity<ApiResponse<BookingResponseDTO>> createBooking(
+//            @RequestHeader("Idempotency-Key") String idempotencyKey,
+//            @Valid @RequestBody CreateBookingDTO request,
+//            @AuthenticationPrincipal UserDetails userDetails,
+//            HttpServletRequest httpServletRequest
+//    ) {
+//
+//        BookingResponseDTO booking =
+//                bookingService.createBooking(request, userDetails);
+//
+//        return ResponseEntity.status(HttpStatus.CREATED).body(
+//                ApiResponse.<BookingResponseDTO>builder()
+//                        .success(true)
+//                        .message("Booking created successfully")
+//                        .statusCode(201)
+//                        .data(booking)
+//                        .errors(null)
+//                        .path(httpServletRequest.getRequestURI())
+//                        .traceId(TraceIdUtil.generate())
+//                        .timestamp(LocalDateTime.now())
+//                        .build()
+//        );
+//    }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<BookingResponseDTO>> createBooking(
-            @Valid @RequestBody CreateBookingDTO request,
-            @AuthenticationPrincipal UserDetails userDetails,
+    public ResponseEntity<ApiResponse<?>> createBooking(
+
+            @RequestHeader("Idempotency-Key")
+            String idempotencyKey,
+
+            @Valid
+            @RequestBody
+            CreateBookingDTO request,
+
+            @AuthenticationPrincipal
+            UserDetails userDetails,
+
             HttpServletRequest httpServletRequest
-    ) {
+
+    ) throws JsonProcessingException {
+
+        // CHECK IF REQUEST ALREADY EXISTS
+
+        if (idempotencyService.exists(idempotencyKey)) {
+
+            IdempotencyRecord existingRecord =
+                    idempotencyService.get(idempotencyKey);
+
+            return ResponseEntity
+                    .status(existingRecord.getStatus())
+                    .body(
+                            objectMapper.readValue(
+                                    existingRecord.getResponseBody(),
+                                    ApiResponse.class
+                            )
+                    );
+        }
+
+        // CREATE BOOKING
 
         BookingResponseDTO booking =
-                bookingService.createBooking(request, userDetails);
+                bookingService.createBooking(
+                        request,
+                        userDetails
+                );
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(
+        // BUILD RESPONSE
+
+        ApiResponse<BookingResponseDTO> response =
                 ApiResponse.<BookingResponseDTO>builder()
                         .success(true)
                         .message("Booking created successfully")
@@ -54,8 +119,24 @@ public class BookingController {
                         .path(httpServletRequest.getRequestURI())
                         .traceId(TraceIdUtil.generate())
                         .timestamp(LocalDateTime.now())
-                        .build()
+                        .build();
+
+        // STORE RESPONSE IN REDIS
+
+        IdempotencyRecord record =
+                new IdempotencyRecord(
+                        201,
+                        objectMapper.writeValueAsString(response)
+                );
+
+        idempotencyService.save(
+                idempotencyKey,
+                record
         );
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(response);
     }
 
     @PutMapping("/{id}/cancel")
